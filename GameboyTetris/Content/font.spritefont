@@ -17,7 +17,7 @@ with.
     Size is a float value, measured in points. Modify this value to change
     the size of the font.
     -->
-		<Size>18</Size>
+		<Size>21</Size>
 
 		<!--
     Spacing is a float value, measured in pixels. Modify this value to change
@@ -56,12 +56,12 @@ with.
 				<End>&#126;</End>
 			</CharacterRegion>
 			<CharacterRegion>
-				<Start>&#192;</Start>
+				<Start>&#162;</Start>
 				<End>&#247;</End>
 			</CharacterRegion>
 			<CharacterRegion>
-				<Start>&#169;</Start>
-				<End>&#170;</End>
+				<Start>	&#8364;</Start>
+				<End>&#8365;</End>
 			</CharacterRegion>
 		</CharacterRegions>
 	</Asset>

@@ -20,7 +20,7 @@ namespace GameboyTetris
         private SpriteFont font;
         private string text;
         private Texture2D tex;
-        private Vector2 position;
+        public Vector2 position;
 
         public SpriteText(Texture2D _tex, Vector2 _position, DrawMode _drawMode, SpriteFont _font, string _text)
         //: base(_tex, _position)

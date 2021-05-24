@@ -28,6 +28,8 @@ namespace GameboyTetris
         private SpriteFont font;
         private Texture2D pixel;
         private List<MapScreen> screens = new List<MapScreen>();
+        private bool selectedLeft = true;
+        private SpriteText cursor;
 
         public Game1()
         {
@@ -128,6 +130,8 @@ namespace GameboyTetris
                 //_spriteBatch.Draw(pixel, new Rectangle(40 + 80 * i - (int)Math.Round((font.MeasureString(temp).X / 2 * 0.25f)), (int)Math.Round(114 + (font.MeasureString(temp).Y / 2 * 0.25f)), (int)Math.Round(font.MeasureString(temp).X * 0.25f), 1), new Color(48, 104, 80));
                 map.textOnScreen.Add(new SpriteText(pixel, new Vector2(40 + 80 * i, 115), SpriteText.DrawMode.MiddleUnderline, font, temp));
             }
+            cursor = new SpriteText(pixel, new Vector2(11, 115), SpriteText.DrawMode.Middle, font, "€");
+            map.textOnScreen.Add(cursor);
             //font.            // TODO: use this.Content to load your game content here
         }
 
@@ -146,6 +150,27 @@ namespace GameboyTetris
                 //background.SetTex(titleScreen);
                 background = screens.Find(o => o.name == "title");
                 stopwatch.Restart();
+            }
+            if (gs == GameState.startscreen)
+            {
+                if (!selectedLeft && (Input.directional.X < 0))
+                {
+                    selectedLeft = true;
+                    cursor.position.X = 11;
+                }
+                else if (selectedLeft && Input.directional.X > 0)
+                {
+                    selectedLeft = false;
+                    cursor.position.X = 90;
+                }
+                if (Input.GetButtonDown(Buttons.Start) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Enter))
+                {
+                    if (!selectedLeft)
+                    {
+                        selectedLeft = true;
+                        cursor.position.X = 11;
+                    }
+                }
             }
             // TODO: Add your update logic here
             base.Update(gameTime);
