@@ -65,9 +65,11 @@ namespace GameboyTetris
             {
                 for (int i = 0; i < sprites.Count; i++)
                 {
+                    Vector2 temp = AdvancedMath.Rotate(sprites[i].position - origin, 90) + origin;
+                    temp = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(temp.X - xOffset), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(temp.Y - yOffset), 8) + yOffset);
                     for (int a = 0; a < colliding.Count; a++)
                     {
-                        if (colliding[a].sprites.Any(o => o.BasicIntersects(new Rectangle((int)AdvancedMath.Rotate(sprites[i].position, 90).X, (int)AdvancedMath.Rotate(sprites[i].position, 90).Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
+                        if (colliding[a].sprites.Any(o => o.rectangle == (new Rectangle((int)temp.X, (int)temp.Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
                         {
                             active = false;
                             return;
@@ -95,7 +97,9 @@ namespace GameboyTetris
             {
                 for (int i = 0; i < sprites.Count; i++)
                 {
-                    if (colliding.Any(o => o.BasicIntersects(new Rectangle((int)AdvancedMath.Rotate(sprites[i].position, -90).X, (int)AdvancedMath.Rotate(sprites[i].position, -90).Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
+                    Vector2 temp = AdvancedMath.Rotate(sprites[i].position - origin, -90) + origin;
+                    temp = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(temp.X - xOffset), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(temp.Y - yOffset), 8) + yOffset);
+                    if (colliding.Any(o => o.BasicIntersects(new Rectangle((int)temp.X, (int)temp.Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
                     {
                         active = false;
                         return;
@@ -121,9 +125,11 @@ namespace GameboyTetris
             {
                 for (int i = 0; i < sprites.Count; i++)
                 {
+                    Vector2 temp = AdvancedMath.Rotate(sprites[i].position - origin, -90) + origin;
+                    temp = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(temp.X - xOffset), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(temp.Y - yOffset), 8) + yOffset);
                     for (int a = 0; a < colliding.Count; a++)
                     {
-                        if (colliding[a].sprites.Any(o => o.BasicIntersects(new Rectangle((int)AdvancedMath.Rotate(sprites[i].position, -90).X, (int)AdvancedMath.Rotate(sprites[i].position, -90).Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
+                        if (colliding[a].sprites.Any(o => o.rectangle == (new Rectangle((int)temp.X, (int)temp.Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
                         {
                             active = false;
                             return;
