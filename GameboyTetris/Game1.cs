@@ -16,7 +16,6 @@ namespace GameboyTetris
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private RetroScreen gameboy;
-        private Sprite player;
         private MapScreen background;
         private Texture2D titleScreen;
         private Texture2D logo;
@@ -109,9 +108,7 @@ namespace GameboyTetris
         protected override void LoadContent()
         {
             _spriteBatch = new SpriteBatch(GraphicsDevice);
-            Texture2D texture = Content.Load<Texture2D>("linktransdown0");
             titleScreen = Content.Load<Texture2D>("tetrisTitleScreenCropCol");
-            player = new Sprite(texture, new Vector2(screenWidth / 2, screenHeight / 2));
             logo = Content.Load<Texture2D>("Logo");
             //background = new MapScreen(logo, new Rectangle(0, 0, screenWidth, screenHeight));
             background = new MapScreen(logo, "logo");
@@ -132,6 +129,12 @@ namespace GameboyTetris
             }
             cursor = new SpriteText(pixel, new Vector2(11, 115), SpriteText.DrawMode.Middle, font, "€");
             map.textOnScreen.Add(cursor);
+            Texture2D texture = Content.Load<Texture2D>("tetrisPlayingTextlessCol");
+            screens.Add(new MapScreen(texture, "playing"));
+            map = screens.Find(o => o.name == "playing");
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 11), SpriteText.DrawMode.Middle, font, "Score"));
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 51), SpriteText.DrawMode.Middle, font, "Level"));
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(131, 75), SpriteText.DrawMode.Middle, font, "Lines"));
             //font.            // TODO: use this.Content to load your game content here
         }
 
@@ -153,12 +156,12 @@ namespace GameboyTetris
             }
             if (gs == GameState.startscreen)
             {
-                if (!selectedLeft && (Input.directional.X < 0))
+                if (!selectedLeft && (Input.directional.X < 0) && !(Input.GetButton(Buttons.Start) || Input.GetButton(Microsoft.Xna.Framework.Input.Keys.Enter)))
                 {
                     selectedLeft = true;
                     cursor.position.X = 11;
                 }
-                else if (selectedLeft && Input.directional.X > 0)
+                else if (selectedLeft && Input.directional.X > 0 && !(Input.GetButton(Buttons.Start) || Input.GetButton(Microsoft.Xna.Framework.Input.Keys.Enter)))
                 {
                     selectedLeft = false;
                     cursor.position.X = 90;
@@ -169,6 +172,11 @@ namespace GameboyTetris
                     {
                         selectedLeft = true;
                         cursor.position.X = 11;
+                    }
+                    else
+                    {
+                        gs = GameState.playing;
+                        background = screens.Find(o => o.name == "playing");
                     }
                 }
             }
@@ -188,11 +196,6 @@ namespace GameboyTetris
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
 
             background.Draw(_spriteBatch);
-
-            if (gs == GameState.playing || gs == GameState.paused)
-            {
-                player.Draw(_spriteBatch);
-            }
             /*string temp = "© 2021 Gustav";
             _spriteBatch.DrawString(font, temp, new Vector2(80, 135) - (font.MeasureString(temp) / 2 * 0.25f), new Color(7, 24, 33), 0, new Vector2(), 0.25f, SpriteEffects.None, 0);
             for (int i = 0; i < 2; i++)

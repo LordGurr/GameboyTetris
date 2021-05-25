@@ -8,7 +8,7 @@ namespace GameboyTetris
 {
     internal static class Input
     {
-        private static KeyboardState currentKeyState;
+        public static KeyboardState currentKeyState { private set; get; }
 
         private static KeyboardState previousKeyState;
 
