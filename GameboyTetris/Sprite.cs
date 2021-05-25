@@ -175,5 +175,10 @@ namespace GameboyTetris
         {
             return sprite.rectangle.Intersects(rectangle);
         }
+
+        public virtual bool BasicIntersects(Rectangle _rectangle)
+        {
+            return _rectangle.Intersects(rectangle);
+        }
     }
 }

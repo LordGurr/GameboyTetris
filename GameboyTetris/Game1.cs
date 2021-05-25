@@ -29,6 +29,17 @@ namespace GameboyTetris
         private List<MapScreen> screens = new List<MapScreen>();
         private bool selectedLeft = true;
         private SpriteText cursor;
+        private bool ShapeActive = false;
+
+        private List<Shape> shapes = new List<Shape>();
+        private Shape active;
+        private float timeforUpdate = 1;
+        private float timeSinceUpdate = 0;
+        private float timeforMove = 0.5f;
+        private float timeSinceMove = 0;
+        private int ids = 0;
+        private Texture2D[] blocks;
+        private Random rng = new Random();
 
         public Game1()
         {
@@ -135,6 +146,9 @@ namespace GameboyTetris
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 11), SpriteText.DrawMode.Middle, font, "Score"));
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 51), SpriteText.DrawMode.Middle, font, "Level"));
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(131, 75), SpriteText.DrawMode.Middle, font, "Lines"));
+            int xCount = 8;
+            int yCount = 1;
+            blocks = AdvancedMath.Split(Content.Load<Texture2D>("TetrisSpriteSheet"), 8, 8, out xCount, out yCount);
             //font.            // TODO: use this.Content to load your game content here
         }
 
@@ -177,6 +191,53 @@ namespace GameboyTetris
                     {
                         gs = GameState.playing;
                         background = screens.Find(o => o.name == "playing");
+                    }
+                }
+            }
+            if (gs == GameState.playing)
+            {
+                timeSinceUpdate += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (!ShapeActive)
+                {
+                    active = new Shape(blocks[rng.Next(blocks.Length)], ids);
+                    ids++;
+                    ShapeActive = true;
+                    screens.Find(o => o.name == "playing").spritesInScreen.AddRange(active.sprites);
+                    shapes.Add(active);
+                }
+                else
+                {
+                    if (timeSinceUpdate > timeforUpdate)
+                    {
+                        timeSinceUpdate = 0;
+                        active.Update(shapes.FindAll(o => o.id != active.id));
+                        if (!active.active)
+                        {
+                            ShapeActive = false;
+                            return;
+                        }
+                    }
+                    if (Input.GetButtonDown(Buttons.A) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.X))
+                    {
+                        active.RotateRight(shapes.FindAll(o => o.id != active.id));
+                    }
+                    else if (Input.GetButtonDown(Buttons.B) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Z))
+                    {
+                        active.RotateLeft(shapes.FindAll(o => o.id != active.id));
+                    }
+                    timeSinceMove += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    if (timeSinceMove > timeforMove)
+                    {
+                        if (Input.directional.X > 0)
+                        {
+                            active.MoveRight(shapes.FindAll(o => o.id != active.id));
+                            timeSinceMove = 0;
+                        }
+                        else if (Input.directional.X < 0)
+                        {
+                            active.MoveLeft(shapes.FindAll(o => o.id != active.id));
+                            timeSinceMove = 0;
+                        }
                     }
                 }
             }
