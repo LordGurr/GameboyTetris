@@ -214,6 +214,13 @@ namespace GameboyTetris
                         if (!active.active)
                         {
                             ShapeActive = false;
+                            if (active.AboveBorder())
+                            {
+                                screens.Find(o => o.name == "playing").spritesInScreen.Clear();
+                                gs = GameState.startscreen;
+                                shapes.Clear();
+                                background = screens.Find(o => o.name == "title");
+                            }
                             return;
                         }
                     }

@@ -101,5 +101,13 @@ namespace GameboyTetris
             //Return the array of parts.
             return r;
         }
+
+        public static int GetNearestMultiple(int value, int factor)
+        {
+            return (int)Math.Round(
+                              (value / (double)factor),
+                              MidpointRounding.AwayFromZero
+                          ) * factor;
+        }
     }
 }
