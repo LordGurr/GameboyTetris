@@ -35,7 +35,7 @@ namespace GameboyTetris
         private Shape active;
         private float timeforUpdate = 1;
         private float timeSinceUpdate = 0;
-        private float timeforMove = 0.5f;
+        private float timeforMove = 0.25f;
         private float timeSinceMove = 0;
         private int ids = 0;
         private Texture2D[] blocks;
@@ -199,7 +199,7 @@ namespace GameboyTetris
                 timeSinceUpdate += (float)gameTime.ElapsedGameTime.TotalSeconds;
                 if (!ShapeActive)
                 {
-                    active = new Shape(blocks[rng.Next(blocks.Length)], ids);
+                    active = new Shape(blocks[rng.Next(blocks.Length)], ids, rng);
                     ids++;
                     ShapeActive = true;
                     screens.Find(o => o.name == "playing").spritesInScreen.AddRange(active.sprites);
@@ -207,7 +207,7 @@ namespace GameboyTetris
                 }
                 else
                 {
-                    if (timeSinceUpdate > timeforUpdate)
+                    if (timeSinceUpdate > timeforUpdate || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 8)
                     {
                         timeSinceUpdate = 0;
                         active.Update(shapes.FindAll(o => o.id != active.id));
@@ -231,6 +231,23 @@ namespace GameboyTetris
                     else if (Input.GetButtonDown(Buttons.B) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Z))
                     {
                         active.RotateLeft(shapes.FindAll(o => o.id != active.id));
+                    }
+                    else if (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W))
+                    {
+                        timeSinceUpdate = 0;
+                        while (active.active)
+                        {
+                            active.Update(shapes.FindAll(o => o.id != active.id));
+                        }
+                        ShapeActive = false;
+                        if (active.AboveBorder())
+                        {
+                            screens.Find(o => o.name == "playing").spritesInScreen.Clear();
+                            gs = GameState.startscreen;
+                            shapes.Clear();
+                            background = screens.Find(o => o.name == "title");
+                        }
+                        return;
                     }
                     timeSinceMove += (float)gameTime.ElapsedGameTime.TotalSeconds;
                     if (timeSinceMove > timeforMove)
@@ -403,8 +420,12 @@ namespace GameboyTetris
 
         public void Draw(SpriteBatch _spriteBatch, float lerpAmount)
         {
-            _spriteBatch.Draw(renderTarget, screenSize, Color.Lerp(Color.White, Color.Black, lerpAmount));
+            _spriteBatch.Draw(renderTarget, screenSize, Color.Lerp(Color.White, new Color(48, 104, 80), lerpAmount));
         }
+
+        // new Color(224, 248, 207)
+        // new Color(7, 24, 33)
+        // new Color(48, 104, 80)
     }
 
     internal class MapScreen
@@ -441,6 +462,88 @@ namespace GameboyTetris
             for (int i = 0; i < textOnScreen.Count; i++)
             {
                 textOnScreen[i].Draw(_spriteBatch);
+            }
+        }
+    }
+
+    public class Vector2Int
+    {
+        public int X { get; set; }
+
+        public int Y { get; set; }
+
+        public Vector2Int()
+        {
+            X = 0;
+            Y = 0;
+        }
+
+        public Vector2Int(int _x)
+        {
+            X = _x;
+            Y = 0;
+        }
+
+        public Vector2Int(int _x, int _y)
+        {
+            X = _x;
+            Y = _y;
+        }
+
+        public static Vector2Int operator +(Vector2Int a, Vector2Int b)
+        {
+            return new Vector2Int(a.X + b.X, a.Y + b.Y);
+        }
+
+        public static Vector2Int operator -(Vector2Int a, Vector2Int b)
+        {
+            return new Vector2Int(a.X - b.X, a.Y - b.Y);
+        }
+
+        public static Vector2Int operator *(Vector2Int a, int b)
+        {
+            return new Vector2Int(a.X * b, a.Y * b);
+        }
+
+        public static Vector2Int operator *(Vector2Int a, float b)
+        {
+            return new Vector2Int((int)Math.Round(a.X * b, MidpointRounding.AwayFromZero), (int)Math.Round(a.Y * b, MidpointRounding.AwayFromZero));
+        }
+
+        public static Vector2Int operator /(Vector2Int a, int b)
+        {
+            return new Vector2Int(a.X / b, a.Y / b);
+        }
+
+        public static Vector2Int operator /(Vector2Int a, float b)
+        {
+            return new Vector2Int((int)Math.Round(a.X / b, MidpointRounding.AwayFromZero), (int)Math.Round(a.Y / b, MidpointRounding.AwayFromZero));
+        }
+
+        public static Vector2Int operator %(Vector2Int a, int b)
+        {
+            return new Vector2Int(a.X % b, a.Y % b);
+        }
+
+        public static Vector2Int operator %(Vector2Int a, float b)
+        {
+            return new Vector2Int((int)Math.Round(a.X % b, MidpointRounding.AwayFromZero), (int)Math.Round(a.Y % b, MidpointRounding.AwayFromZero));
+        }
+
+        public static readonly Vector2Int One = new Vector2Int(1, 1);
+        public static readonly Vector2Int Zero = new Vector2Int(0, 0);
+
+        public float Distance(Vector2Int b)
+        {
+            return AdvancedMath.Vector2Distance(new Vector2(X, Y), new Vector2(b.X, b.Y));
+        }
+
+        public Vector2Int Normalize
+        {
+            get
+            {
+                Vector2 temp = AdvancedMath.Normalize(new Vector2(X, Y));
+                return new Vector2Int((int)Math.Round(temp.X, MidpointRounding.AwayFromZero), (int)Math.Round(temp.Y, MidpointRounding.AwayFromZero));
             }
         }
     }
