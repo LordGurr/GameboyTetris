@@ -4,6 +4,7 @@ using Microsoft.Xna.Framework.Input;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Windows.Forms;
 
 namespace GameboyTetris
@@ -221,6 +222,10 @@ namespace GameboyTetris
                                 shapes.Clear();
                                 background = screens.Find(o => o.name == "title");
                             }
+                            else
+                            {
+                                CheckForLine();
+                            }
                             return;
                         }
                     }
@@ -247,6 +252,10 @@ namespace GameboyTetris
                             shapes.Clear();
                             background = screens.Find(o => o.name == "title");
                         }
+                        else
+                        {
+                            CheckForLine();
+                        }
                         return;
                     }
                     timeSinceMove += (float)gameTime.ElapsedGameTime.TotalSeconds;
@@ -267,6 +276,78 @@ namespace GameboyTetris
             }
             // TODO: Add your update logic here
             base.Update(gameTime);
+        }
+
+        private void CheckForLine()
+        {
+            for (int i = 1; i < 138; i += 8)
+            {
+                int blocks = 0;
+                for (int a = 0; a < shapes.Count; a++)
+                {
+                    blocks += shapes[a].sprites.FindAll(o => o.position.Y == i).Count;
+                }
+                if (blocks == 10)
+                {
+                    for (int a = 0; a < shapes.Count; a++)
+                    {
+                        for (int b = 0; b < shapes[a].sprites.Count; b++)
+                        {
+                            if (shapes[a].sprites[b].position.Y == i)
+                            {
+                                MapScreen temp = screens.Find(o => o.name == "playing");
+                                int index = temp.spritesInScreen.FindIndex(o => o.position == shapes[a].sprites[b].position);
+                                if (index >= 0)
+                                {
+                                    temp.spritesInScreen.RemoveAt(index);
+                                }
+                                shapes[a].sprites.RemoveAt(b);
+                                b--;
+                            }
+                            else if (shapes[a].sprites[b].position.Y < i)
+                            {
+                                shapes[a].sprites[b].position.Y += shapes[a].sprites[b].rectangle.Height;
+                            }
+                        }
+                    }
+                }
+            }
+            MapScreen screen = screens.Find(o => o.name == "playing");
+            for (int i = 0; i < screen.spritesInScreen.Count; i++)
+            {
+                bool found = false;
+                for (int a = 0; a < shapes.Count; a++)
+                {
+                    if (shapes[a].sprites.Any(o => o.position == screen.spritesInScreen[i].position))
+                    {
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found)
+                {
+                    screen.spritesInScreen.RemoveAt(i);
+                    i--;
+                }
+            }
+            for (int i = 0; i < shapes.Count; i++)
+            {
+                if (shapes[i].sprites.Count < 1)
+                {
+                    shapes.RemoveAt(i);
+                    i--;
+                }
+                else
+                {
+                    for (int a = 0; a < shapes[i].sprites.Count; a++)
+                    {
+                        if (!screen.spritesInScreen.Any(o => o.position == shapes[i].sprites[a].position))
+                        {
+                            screen.spritesInScreen.Add(shapes[i].sprites[a]);
+                        }
+                    }
+                }
+            }
         }
 
         protected override void Draw(GameTime gameTime)
@@ -545,6 +626,11 @@ namespace GameboyTetris
                 Vector2 temp = AdvancedMath.Normalize(new Vector2(X, Y));
                 return new Vector2Int((int)Math.Round(temp.X, MidpointRounding.AwayFromZero), (int)Math.Round(temp.Y, MidpointRounding.AwayFromZero));
             }
+        }
+
+        public Vector2 ToVector2()
+        {
+            return new Vector2(X, Y);
         }
     }
 }

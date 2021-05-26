@@ -69,49 +69,49 @@ namespace GameboyTetris
         //     },
         //};
 
-        private static Sprite[][] AllShapes = new Sprite[][]
+        private static Vector2Int[][] AllShapes = new Vector2Int[][]
         {
-             new Sprite[] // Long
+             new Vector2Int[] // Long
              {
-                 new Sprite(null, new Vector2(0,0)),
-                 new Sprite(null, new Vector2(0,1)),
-                 new Sprite(null, new Vector2(0,2)),
-                 new Sprite(null, new Vector2(0,3)),
+                 new Vector2Int(0,0),
+                 new Vector2Int(0,1),
+                 new Vector2Int(0,2),
+                 new Vector2Int(0,3),
              },
-             new Sprite[] // Right hook
+             new Vector2Int[] // Right hook
              {
-                  new Sprite(null, new Vector2(0,0)),
-                  new Sprite(null, new Vector2(1,0)),
-                  new Sprite(null, new Vector2(2,0)),
-                  new Sprite(null, new Vector2(3,1)),
+                  new Vector2Int(0,0),
+                  new Vector2Int(1,0),
+                  new Vector2Int(2,0),
+                  new Vector2Int(2,1),
              },
-             new Sprite[] // Left hook
+             new Vector2Int[] // Left hook
              {
-                  new Sprite(null, new Vector2(0,0)),
-                  new Sprite(null, new Vector2(1,0)),
-                  new Sprite(null, new Vector2(2,0)),
-                  new Sprite(null, new Vector2(0,1)),
+                  new Vector2Int(0,0),
+                  new Vector2Int(1,0),
+                  new Vector2Int(2,0),
+                  new Vector2Int(0,1),
              },
-             new Sprite[] // Right twist
+             new Vector2Int[] // Right twist
              {
-                 new Sprite(null, new Vector2(0,1)),
-                 new Sprite(null, new Vector2(1,1)),
-                 new Sprite(null, new Vector2(1,0)),
-                 new Sprite(null, new Vector2(2,0)),
+                 new Vector2Int(0,1),
+                 new Vector2Int(1,1),
+                 new Vector2Int(1,0),
+                 new Vector2Int(2,0),
              },
-             new Sprite[] // Triangle
+             new Vector2Int[] // Triangle
              {
-                 new Sprite(null, new Vector2(0, 0)),
-                 new Sprite(null, new Vector2(1, 0)),
-                 new Sprite(null, new Vector2(1, 1)),
-                 new Sprite(null, new Vector2(2, 0)),
+                 new Vector2Int(0, 0),
+                 new Vector2Int(1, 0),
+                 new Vector2Int(1, 1),
+                 new Vector2Int(2, 0),
              },
-             new Sprite[] // Left twist
+             new Vector2Int[] // Left twist
              {
-                 new Sprite(null, new Vector2(1,0)),
-                 new Sprite(null, new Vector2(2,0)),
-                 new Sprite(null, new Vector2(2,1)),
-                 new Sprite(null, new Vector2(3,1)),
+                 new Vector2Int(1,0),
+                 new Vector2Int(2,0),
+                 new Vector2Int(2,1),
+                 new Vector2Int(3,1),
              },
         };
 
@@ -122,8 +122,12 @@ namespace GameboyTetris
             //sprites.Add(new Sprite(texture, new Vector2(8 + xOffset, 0 + yOffset)));
             //sprites.Add(new Sprite(texture, new Vector2(8 + xOffset, 8 + yOffset)));
             //sprites.Add(new Sprite(texture, new Vector2(16 + xOffset, 8 + yOffset)));
-
-            sprites = AllShapes[rng.Next(AllShapes.Length)].ToList();
+            int index = rng.Next(AllShapes.Length);
+            for (int i = 0; i < AllShapes[index].Length; i++)
+            {
+                sprites.Add(new Sprite(texture, AllShapes[index][i].ToVector2()));
+            }
+            //sprites = AllShapes[rng.Next(AllShapes.Length)].ToList();
             for (int i = 0; i < sprites.Count; i++)
             {
                 sprites[i].position *= 8;
