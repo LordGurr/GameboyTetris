@@ -18,7 +18,7 @@ namespace GameboyTetris
 
         private DrawMode drawMode;
         private SpriteFont font;
-        private string text;
+        public string text;
         private Texture2D tex;
         public Vector2 position;
 

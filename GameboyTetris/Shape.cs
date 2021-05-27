@@ -113,6 +113,13 @@ namespace GameboyTetris
                  new Vector2Int(2,1),
                  new Vector2Int(3,1),
              },
+             new Vector2Int[] // Cube
+             {
+                 new Vector2Int(0,0),
+                 new Vector2Int(1,0),
+                 new Vector2Int(0,1),
+                 new Vector2Int(1,1),
+             },
         };
 
         public Shape(Texture2D texture, int _id, Random rng)

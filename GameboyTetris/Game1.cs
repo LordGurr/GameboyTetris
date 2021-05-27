@@ -41,6 +41,8 @@ namespace GameboyTetris
         private int ids = 0;
         private Texture2D[] blocks;
         private Random rng = new Random();
+        private int linescleared = 0;
+        private SpriteText linesClearedText;
 
         public Game1()
         {
@@ -147,6 +149,8 @@ namespace GameboyTetris
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 11), SpriteText.DrawMode.Middle, font, "Score"));
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 51), SpriteText.DrawMode.Middle, font, "Level"));
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(131, 75), SpriteText.DrawMode.Middle, font, "Lines"));
+            linesClearedText = new SpriteText(pixel, new Vector2(140, 77), SpriteText.DrawMode.Normal, font, "0");
+            map.textOnScreen.Add(linesClearedText);
             int xCount = 8;
             int yCount = 1;
             blocks = AdvancedMath.Split(Content.Load<Texture2D>("TetrisSpriteSheet"), 8, 8, out xCount, out yCount);
@@ -197,6 +201,7 @@ namespace GameboyTetris
             }
             if (gs == GameState.playing)
             {
+                linesClearedText.text = linescleared.ToString();
                 timeSinceUpdate += (float)gameTime.ElapsedGameTime.TotalSeconds;
                 if (!ShapeActive)
                 {
@@ -220,6 +225,7 @@ namespace GameboyTetris
                                 screens.Find(o => o.name == "playing").spritesInScreen.Clear();
                                 gs = GameState.startscreen;
                                 shapes.Clear();
+                                linescleared = 0;
                                 background = screens.Find(o => o.name == "title");
                             }
                             else
@@ -250,6 +256,7 @@ namespace GameboyTetris
                             screens.Find(o => o.name == "playing").spritesInScreen.Clear();
                             gs = GameState.startscreen;
                             shapes.Clear();
+                            linescleared = 0;
                             background = screens.Find(o => o.name == "title");
                         }
                         else
@@ -289,6 +296,7 @@ namespace GameboyTetris
                 }
                 if (blocks == 10)
                 {
+                    linescleared++;
                     for (int a = 0; a < shapes.Count; a++)
                     {
                         for (int b = 0; b < shapes[a].sprites.Count; b++)
