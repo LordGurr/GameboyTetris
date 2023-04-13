@@ -10,11 +10,17 @@ namespace GameboyTetris
     {
         public List<Sprite> sprites { private set; get; }
 
+        private Sprite[] blocks;
+
         public bool active { private set; get; }
         private Vector2 origin;
+        public Vector2 AccessOrigin { get => origin; }
+
         public int id { private set; get; }
         private int yOffset = 1;
         private int xOffset = 41;
+
+        private int shape;
 
         //private static Sprite[][] AllShapes = new Sprite[][]
         //{
@@ -73,53 +79,64 @@ namespace GameboyTetris
         {
              new Vector2Int[] // Long
              {
-                 new Vector2Int(0,0),
-                 new Vector2Int(0,1),
-                 new Vector2Int(0,2),
-                 new Vector2Int(0,3),
+                 new Vector2Int(2,0),
+                 new Vector2Int(2,1),
+                 new Vector2Int(2,2),
+                 new Vector2Int(2,3),
              },
              new Vector2Int[] // Right hook
              {
-                  new Vector2Int(0,0),
                   new Vector2Int(1,0),
-                  new Vector2Int(2,0),
-                  new Vector2Int(2,1),
+                  new Vector2Int(1,1),
+                  new Vector2Int(1,2),
+                  new Vector2Int(2,2),
              },
              new Vector2Int[] // Left hook
              {
-                  new Vector2Int(0,0),
-                  new Vector2Int(1,0),
                   new Vector2Int(2,0),
-                  new Vector2Int(0,1),
+                  new Vector2Int(2,1),
+                  new Vector2Int(2,2),
+                  new Vector2Int(1,2),
              },
              new Vector2Int[] // Right twist
              {
-                 new Vector2Int(0,1),
-                 new Vector2Int(1,1),
                  new Vector2Int(1,0),
-                 new Vector2Int(2,0),
+                 new Vector2Int(1,1),
+                 new Vector2Int(2,1),
+                 new Vector2Int(2,2),
              },
              new Vector2Int[] // Triangle
              {
-                 new Vector2Int(0, 0),
-                 new Vector2Int(1, 0),
-                 new Vector2Int(1, 1),
                  new Vector2Int(2, 0),
+                 new Vector2Int(2, 1),
+                 new Vector2Int(1, 1),
+                 new Vector2Int(2, 2),
              },
              new Vector2Int[] // Left twist
              {
-                 new Vector2Int(1,0),
                  new Vector2Int(2,0),
+                 new Vector2Int(1,1),
                  new Vector2Int(2,1),
-                 new Vector2Int(3,1),
+                 new Vector2Int(1,2),
              },
              new Vector2Int[] // Cube
              {
-                 new Vector2Int(0,0),
-                 new Vector2Int(1,0),
-                 new Vector2Int(0,1),
                  new Vector2Int(1,1),
+                 new Vector2Int(2,1),
+                 new Vector2Int(1,2),
+                 new Vector2Int(2,2),
              },
+        };
+
+        private static Vector2[] Origins = new Vector2[]
+        {
+            new Vector2(1.5f,1.5f),// Long
+            new Vector2(1,1),// Right Hook
+            new Vector2(2,1), // Left Hook
+            new Vector2(2,1), // Right Twist
+           new Vector2(-1,-1), //new Vector2(2,1), // Triangle
+            new Vector2(2,1), // Left Twist
+          new Vector2(-1,-1)  //new Vector2(2.5f,2.5f),//Kub
         };
 
         public Shape(Texture2D texture, int _id, Random rng)
@@ -129,10 +146,13 @@ namespace GameboyTetris
             //sprites.Add(new Sprite(texture, new Vector2(8 + xOffset, 0 + yOffset)));
             //sprites.Add(new Sprite(texture, new Vector2(8 + xOffset, 8 + yOffset)));
             //sprites.Add(new Sprite(texture, new Vector2(16 + xOffset, 8 + yOffset)));
-            int index = rng.Next(AllShapes.Length);
-            for (int i = 0; i < AllShapes[index].Length; i++)
+            blocks = new Sprite[16];
+
+            shape = rng.Next(AllShapes.Length);
+            for (int i = 0; i < AllShapes[shape].Length; i++)
             {
-                sprites.Add(new Sprite(texture, AllShapes[index][i].ToVector2()));
+                sprites.Add(new Sprite(texture, AllShapes[shape][i].ToVector2()));
+                blocks[AllShapes[shape][i].X + AllShapes[shape][i].Y * 4] = sprites[^1];
             }
             //sprites = AllShapes[rng.Next(AllShapes.Length)].ToList();
             for (int i = 0; i < sprites.Count; i++)
@@ -146,8 +166,27 @@ namespace GameboyTetris
                 origin += sprites[i].position;
             }
             origin /= sprites.Count;
+            if (Origins[shape].X > -1)
+            {
+                origin = Origins[shape];
+                origin *= 8;
+                origin += new Vector2(xOffset, yOffset);
+            }
+
             id = _id;
             active = true;
+        }
+
+        private int Rotate(int px, int py, int r)
+        {
+            switch (r % 4)
+            {
+                case 0: return py * 4 + px;         // 0 degrees
+                case 1: return 12 + py - (px * 4);  // 90 degrees
+                case 2: return 15 - (py * 4) - px;  // 180 degrees
+                case 3: return 3 - py + (px * 4);   // 270 degrees
+            }
+            return 0;
         }
 
         public void RotateRight(List<Sprite> colliding)
@@ -176,20 +215,66 @@ namespace GameboyTetris
             }
         }
 
+        //public void rotateLeft()
+        //{
+        //    Vector2[] rotatedCoordinates = new Point[MAX_COORDINATES];
+
+        //    for (int i = 0; i < MAX_COORDINATES; i++)
+        //    {
+        //        // Translates current coordinate to be relative to (0,0)
+        //        Point translationCoordinate = new Vector2(coordinates[i].x - origin.x, coordinates[i].y - origin.y);
+
+        //        // Java coordinates start at 0 and increase as a point moves down, so
+        //        // multiply by -1 to reverse
+        //        translationCoordinate.y *= -1;
+
+        //        // Clone coordinates, so I can use translation coordinates
+        //        // in upcoming calculation
+        //        rotatedCoordinates[i] = (Vector2)translationCoordinate.clone();
+
+        //        // May need to round results after rotation
+        //        rotatedCoordinates[i].x = (int)Math.round(translationCoordinate.x * Math.cos(Math.PI / 2) - translationCoordinate.y * Math.sin(Math.PI / 2));
+        //        rotatedCoordinates[i].y = (int)Math.round(translationCoordinate.x * Math.sin(Math.PI / 2) + translationCoordinate.y * Math.cos(Math.PI / 2));
+
+        //        // Multiply y-coordinate by -1 again
+        //        rotatedCoordinates[i].y *= -1;
+
+        //        // Translate to get new coordinates relative to
+        //        // original origin
+        //        rotatedCoordinates[i].x += origin.x;
+        //        rotatedCoordinates[i].y += origin.y;
+
+        //        // Erase the old coordinates by making them black
+        //        matrix.fillCell(coordinates[i].x, coordinates[i].y, Color.black);
+
+        //    }
+        //    // Set new coordinates to be drawn on screen
+        //    setCoordinates(rotatedCoordinates.clone());
+        //}
+
         public void RotateRight(List<Shape> colliding)
         {
             if (active)
             {
+                Sprite[] tempBlocks = new Sprite[blocks.Length];
+                for (int i = 0; i < blocks.Length; i++)
+                {
+                    tempBlocks[Rotate(i / 4, i % 4, 1)] = blocks[i];
+                    Vector2 temp = new Vector2(i / 4, i % 4);
+                }
+
                 for (int i = 0; i < sprites.Count; i++)
                 {
                     Vector2 temp = AdvancedMath.Rotate(sprites[i].position - origin, 90) + origin;
                     temp = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(temp.X - xOffset, MidpointRounding.AwayFromZero), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(temp.Y - yOffset, MidpointRounding.AwayFromZero), 8) + yOffset);
+                    if (temp.X < 17 || temp.X > 89 || temp.Y > 137)
+                    {
+                        return;
+                    }
                     for (int a = 0; a < colliding.Count; a++)
                     {
-                        //if (colliding[a].sprites.Any(o => o.BasicIntersects(new Rectangle((int)temp.X, (int)temp.Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
                         if (colliding[a].sprites.Any(o => o.position == temp))
                         {
-                            active = false;
                             return;
                         }
                     }
@@ -200,12 +285,15 @@ namespace GameboyTetris
                     sprites[i].position = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(sprites[i].position.X - xOffset, MidpointRounding.AwayFromZero), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(sprites[i].position.Y - yOffset, MidpointRounding.AwayFromZero), 8) + yOffset);
                     sprites[i].UpdatePos(0);
                 }
-                origin = new Vector2();
-                for (int i = 0; i < sprites.Count; i++)
+                if (Origins[shape].X < 0)
                 {
-                    origin += sprites[i].position;
+                    origin = new Vector2();
+                    for (int i = 0; i < sprites.Count; i++)
+                    {
+                        origin += sprites[i].position;
+                    }
+                    origin /= sprites.Count;
                 }
-                origin /= sprites.Count;
             }
         }
 
@@ -245,12 +333,14 @@ namespace GameboyTetris
                 {
                     Vector2 temp = AdvancedMath.Rotate(sprites[i].position - origin, -90) + origin;
                     temp = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(temp.X - xOffset, MidpointRounding.AwayFromZero), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(temp.Y - yOffset, MidpointRounding.AwayFromZero), 8) + yOffset);
+                    if (temp.X < 17 || temp.X > 89 || temp.Y > 137)
+                    {
+                        return;
+                    }
                     for (int a = 0; a < colliding.Count; a++)
                     {
-                        //if (colliding[a].sprites.Any(o => o.BasicIntersects(new Rectangle((int)temp.X, (int)temp.Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
                         if (colliding[a].sprites.Any(o => o.position == temp))
                         {
-                            active = false;
                             return;
                         }
                     }
@@ -261,12 +351,15 @@ namespace GameboyTetris
                     sprites[i].position = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(sprites[i].position.X - xOffset, MidpointRounding.AwayFromZero), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(sprites[i].position.Y - yOffset, MidpointRounding.AwayFromZero), 8) + yOffset);
                     sprites[i].UpdatePos(0);
                 }
-                origin = new Vector2();
-                for (int i = 0; i < sprites.Count; i++)
+                if (Origins[shape].X < 0)
                 {
-                    origin += sprites[i].position;
+                    origin = new Vector2();
+                    for (int i = 0; i < sprites.Count; i++)
+                    {
+                        origin += sprites[i].position;
+                    }
+                    origin /= sprites.Count;
                 }
-                origin /= sprites.Count;
             }
         }
 
@@ -294,12 +387,19 @@ namespace GameboyTetris
                     sprites[i].position.X -= sprites[i].rectangle.Width;
                     sprites[i].UpdatePos(0);
                 }
-                origin = new Vector2();
-                for (int i = 0; i < sprites.Count; i++)
+                if (Origins[shape].X < 0)
                 {
-                    origin += sprites[i].position;
+                    origin = new Vector2();
+                    for (int i = 0; i < sprites.Count; i++)
+                    {
+                        origin += sprites[i].position;
+                    }
+                    origin /= sprites.Count;
                 }
-                origin /= sprites.Count;
+                else
+                {
+                    origin.X -= sprites[0].rectangle.Width;
+                }
             }
         }
 
@@ -327,12 +427,19 @@ namespace GameboyTetris
                     sprites[i].position.X += sprites[i].rectangle.Width;
                     sprites[i].UpdatePos(0);
                 }
-                origin = new Vector2();
-                for (int i = 0; i < sprites.Count; i++)
+                if (Origins[shape].X < 0)
                 {
-                    origin += sprites[i].position;
+                    origin = new Vector2();
+                    for (int i = 0; i < sprites.Count; i++)
+                    {
+                        origin += sprites[i].position;
+                    }
+                    origin /= sprites.Count;
                 }
-                origin /= sprites.Count;
+                else
+                {
+                    origin.X += sprites[0].rectangle.Width;
+                }
             }
         }
 
@@ -388,12 +495,19 @@ namespace GameboyTetris
                     sprites[i].position.Y += sprites[i].rectangle.Height;
                     sprites[i].UpdatePos(0);
                 }
-                origin = new Vector2();
-                for (int i = 0; i < sprites.Count; i++)
+                if (Origins[shape].X < 0)
                 {
-                    origin += sprites[i].position;
+                    origin = new Vector2();
+                    for (int i = 0; i < sprites.Count; i++)
+                    {
+                        origin += sprites[i].position;
+                    }
+                    origin /= sprites.Count;
                 }
-                origin /= sprites.Count;
+                else
+                {
+                    origin.Y += sprites[0].rectangle.Height;
+                }
             }
         }
 

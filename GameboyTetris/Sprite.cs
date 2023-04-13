@@ -7,6 +7,7 @@ namespace GameboyTetris
     internal class Sprite
     {
         public Vector2 origin;
+
         public Texture2D tex;
         public Vector2 position;
         private int actualScale = 1;

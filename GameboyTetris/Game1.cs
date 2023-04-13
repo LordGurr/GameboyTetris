@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+
+//using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -36,13 +38,26 @@ namespace GameboyTetris
         private Shape active;
         private float timeforUpdate = 1;
         private float timeSinceUpdate = 0;
-        private float timeforMove = 0.25f;
+        private float timeforMove = 0.2f;
         private float timeSinceMove = 0;
         private int ids = 0;
         private Texture2D[] blocks;
         private Random rng = new Random();
         private int linescleared = 0;
         private SpriteText linesClearedText;
+        private SpriteText scoreText;
+
+        private bool debug = false;
+
+        private int[] lineScore = new int[4]
+        {
+            40,
+            100,
+            300,
+            1200,
+        };
+
+        private int score = 0;
 
         public Game1()
         {
@@ -132,7 +147,7 @@ namespace GameboyTetris
             font.DefaultCharacter = '#';
             pixel = Content.Load<Texture2D>("Square1");
             MapScreen map = screens.Find(o => o.name == "title");
-            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 135), SpriteText.DrawMode.Middle, font, "© 2021 Gustav"));
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 135), SpriteText.DrawMode.Middle, font, "© " + DateTime.Now.Year + " Gustav"));
             //map.textOnScreen.Add(new SpriteText(pixel, new Vector2(40, 115), SpriteText.DrawMode.MiddleUnderline, "1"))
             for (int i = 0; i < 2; i++)
             {
@@ -147,10 +162,13 @@ namespace GameboyTetris
             screens.Add(new MapScreen(texture, "playing"));
             map = screens.Find(o => o.name == "playing");
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 11), SpriteText.DrawMode.Middle, font, "Score"));
-            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 51), SpriteText.DrawMode.Middle, font, "Level"));
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(131, 52), SpriteText.DrawMode.Middle, font, "Level"));
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(131, 75), SpriteText.DrawMode.Middle, font, "Lines"));
-            linesClearedText = new SpriteText(pixel, new Vector2(140, 77), SpriteText.DrawMode.Normal, font, "0");
+            linesClearedText = new SpriteText(pixel, new Vector2(133, 77), SpriteText.DrawMode.Normal, font, "0");
             map.textOnScreen.Add(linesClearedText);
+            scoreText = new SpriteText(pixel, new Vector2(120, 21), SpriteText.DrawMode.Normal, font, "0");
+            map.textOnScreen.Add(scoreText);
+
             int xCount = 8;
             int yCount = 1;
             blocks = AdvancedMath.Split(Content.Load<Texture2D>("TetrisSpriteSheet"), 8, 8, out xCount, out yCount);
@@ -165,6 +183,22 @@ namespace GameboyTetris
             if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.F11))
             {
                 SwitchFullscreen();
+            }
+            var f = (Form)Control.FromHandle(Window.Handle);
+            if (f.WindowState != FormWindowState.Maximized)
+            {
+                if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.PageUp))
+                {
+                    IncreaseScreenSize();
+                }
+                if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.PageDown))
+                {
+                    DecreaseScreenSize();
+                }
+            }
+            if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.PrintScreen))
+            {
+                debug = !debug;
             }
             if (gs == GameState.logo && stopwatch.Elapsed.TotalSeconds > timeForLogo)
             {
@@ -202,6 +236,7 @@ namespace GameboyTetris
             if (gs == GameState.playing)
             {
                 linesClearedText.text = linescleared.ToString();
+                scoreText.text = score.ToString();
                 timeSinceUpdate += (float)gameTime.ElapsedGameTime.TotalSeconds;
                 if (!ShapeActive)
                 {
@@ -213,7 +248,9 @@ namespace GameboyTetris
                 }
                 else
                 {
-                    if (timeSinceUpdate > timeforUpdate || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 8)
+                    float speed = timeforUpdate - ((float)linescleared / 40);
+                    speed = speed < 0.1f ? 0.1f : speed;
+                    if (timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 8)
                     {
                         timeSinceUpdate = 0;
                         active.Update(shapes.FindAll(o => o.id != active.id));
@@ -230,7 +267,11 @@ namespace GameboyTetris
                             }
                             else
                             {
-                                CheckForLine();
+                                int tempScore = CheckForLine();
+                                if (tempScore > 0)
+                                {
+                                    score += lineScore[tempScore - 1];
+                                }
                             }
                             return;
                         }
@@ -261,7 +302,11 @@ namespace GameboyTetris
                         }
                         else
                         {
-                            CheckForLine();
+                            int tempScore = CheckForLine();
+                            if (tempScore > 0)
+                            {
+                                score += lineScore[tempScore - 1];
+                            }
                         }
                         return;
                     }
@@ -285,8 +330,9 @@ namespace GameboyTetris
             base.Update(gameTime);
         }
 
-        private void CheckForLine()
+        private int CheckForLine()
         {
+            int clearedLines = 0;
             for (int i = 1; i < 138; i += 8)
             {
                 int blocks = 0;
@@ -297,6 +343,7 @@ namespace GameboyTetris
                 if (blocks == 10)
                 {
                     linescleared++;
+                    clearedLines++;
                     for (int a = 0; a < shapes.Count; a++)
                     {
                         for (int b = 0; b < shapes[a].sprites.Count; b++)
@@ -356,6 +403,7 @@ namespace GameboyTetris
                     }
                 }
             }
+            return clearedLines;
         }
 
         protected override void Draw(GameTime gameTime)
@@ -370,6 +418,11 @@ namespace GameboyTetris
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
 
             background.Draw(_spriteBatch);
+            if (debug)
+            {
+                int size = 4;
+                _spriteBatch.Draw(pixel, active.AccessOrigin, null, Color.White, 0, new Vector2(size / 2), size, SpriteEffects.None, 0);
+            }
             /*string temp = "© 2021 Gustav";
             _spriteBatch.DrawString(font, temp, new Vector2(80, 135) - (font.MeasureString(temp) / 2 * 0.25f), new Color(7, 24, 33), 0, new Vector2(), 0.25f, SpriteEffects.None, 0);
             for (int i = 0; i < 2; i++)
@@ -429,6 +482,36 @@ namespace GameboyTetris
                 _graphics.ApplyChanges();
             }
             gameboy.screenSize = ScreenSize();
+        }
+
+        private void IncreaseScreenSize()
+        {
+            int screenSize = gameboy.screenSize.Width / screenWidth;
+            int tempScreenWidth = (screenSize + 1) * screenWidth;
+            int tempScreenHeight = (screenSize + 1) * screenHeight;
+
+            if (tempScreenWidth < GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width && tempScreenHeight < GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height)
+            {
+                _graphics.PreferredBackBufferWidth = tempScreenWidth;
+                _graphics.PreferredBackBufferHeight = tempScreenHeight;
+                gameboy.screenSize = new Rectangle(0, 0, tempScreenWidth, tempScreenHeight);
+                _graphics.ApplyChanges();
+            }
+        }
+
+        private void DecreaseScreenSize()
+        {
+            int screenSize = gameboy.screenSize.Width / screenWidth;
+            if (screenSize > 1)
+            {
+                int tempScreenWidth = (screenSize - 1) * screenWidth;
+                int tempScreenHeight = (screenSize - 1) * screenHeight;
+
+                _graphics.PreferredBackBufferWidth = tempScreenWidth;
+                _graphics.PreferredBackBufferHeight = tempScreenHeight;
+                gameboy.screenSize = new Rectangle(0, 0, tempScreenWidth, tempScreenHeight);
+                _graphics.ApplyChanges();
+            }
         }
 
         private Rectangle ScreenSize()
