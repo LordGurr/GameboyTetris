@@ -139,6 +139,18 @@ namespace GameboyTetris
             new Vector2(-1,-1)  //new Vector2(2.5f,2.5f),//Kub
         };
 
+        public Shape(Shape shape)
+        {
+            sprites = new List<Sprite>();
+            for (int i = 0; i < shape.sprites.Count; i++)
+            {
+                sprites.Add(new Sprite(shape.sprites[i].tex, shape.sprites[i].position));
+                sprites[^1].AccessColor = Color.White * 0.4f;
+            }
+            origin = shape.origin;
+            active = true;
+        }
+
         public Shape(Texture2D texture, int _id, Random rng, int _shape)
         {
             sprites = new List<Sprite>();
@@ -521,6 +533,11 @@ namespace GameboyTetris
                 }
             }
             return false;
+        }
+
+        public void SetActive(bool isActive)
+        {
+            active = isActive;
         }
     }
 }

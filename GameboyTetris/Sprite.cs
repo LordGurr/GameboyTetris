@@ -13,6 +13,9 @@ namespace GameboyTetris
         private int actualScale = 1;
         public int indexOfCollisionSquare = 0;
 
+        private Color myColor = Color.White;
+        public Color AccessColor { get => myColor; set => myColor = value; }
+
         public enum Versions
         {
             basic,
@@ -85,7 +88,7 @@ namespace GameboyTetris
 
         public virtual void Draw(SpriteBatch _spriteBatch)
         {
-            _spriteBatch.Draw(tex, position, null, Color.White, rotation, new Vector2(origin.X, origin.Y), playerScale, SpriteEffects.None, 1);
+            _spriteBatch.Draw(tex, position, null, myColor, rotation, new Vector2(origin.X, origin.Y), playerScale, SpriteEffects.None, 1);
         }
 
         public virtual void Draw(SpriteBatch _spriteBatch, Color color)

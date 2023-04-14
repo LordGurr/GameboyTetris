@@ -74,6 +74,9 @@ namespace GameboyTetris
         private SoundEffect tetris;
 
         private Song[] mySong = new Song[6];
+        private Shape ghost;
+
+        private bool showGhost = true;
 
         public Game1()
         {
@@ -306,6 +309,22 @@ namespace GameboyTetris
                 if (!ShapeActive)
                 {
                     active = new Shape(blocks[rng.Next(blocks.Length)], ids, rng, upComingShapes[0]);
+                    if (showGhost)
+                    {
+                        if (ghost != null)
+                        {
+                            for (int i = 0; i < ghost.sprites.Count; i++)
+                            {
+                                screens.Find(o => o.name == "playing").spritesInScreen.Remove(ghost.sprites[i]);
+                            }
+                        }
+                        ghost = new Shape(active);
+                        while (ghost.active)
+                        {
+                            ghost.Update(shapes.FindAll(o => o.id != active.id));
+                        }
+                        screens.Find(o => o.name == "playing").spritesInScreen.AddRange(ghost.sprites);
+                    }
                     upComingShapes.RemoveAt(0);
                     ids++;
                     ShapeActive = true;
@@ -364,16 +383,55 @@ namespace GameboyTetris
                             }
                             return;
                         }
+                        else
+                        {
+                            if (showGhost)
+                            {
+                                ghost.SetActive(true);
+                                for (int i = 0; i < active.sprites.Count; i++)
+                                {
+                                    ghost.sprites[i].position = active.sprites[i].position;
+                                }
+                                while (ghost.active)
+                                {
+                                    ghost.Update(shapes.FindAll(o => o.id != active.id));
+                                }
+                            }
+                        }
                     }
                     if (Input.GetButtonDown(Buttons.A) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.X))
                     {
                         active.RotateRight(shapes.FindAll(o => o.id != active.id));
                         rotatePiece.Play();
+                        if (showGhost)
+                        {
+                            ghost.SetActive(true);
+                            for (int i = 0; i < active.sprites.Count; i++)
+                            {
+                                ghost.sprites[i].position = active.sprites[i].position;
+                            }
+                            while (ghost.active)
+                            {
+                                ghost.Update(shapes.FindAll(o => o.id != active.id));
+                            }
+                        }
                     }
                     else if (Input.GetButtonDown(Buttons.B) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Z))
                     {
                         active.RotateLeft(shapes.FindAll(o => o.id != active.id));
                         rotatePiece.Play();
+                        if (showGhost)
+                        {
+                            ghost.SetActive(true);
+                            for (int i = 0; i < active.sprites.Count; i++)
+                            {
+                                ghost.sprites[i].position = active.sprites[i].position;
+                            }
+                            while (ghost.active)
+                            {
+                                ghost.Update(shapes.FindAll(o => o.id != active.id));
+                            }
+                        }
                     }
                     else if (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W))
                     {
@@ -422,12 +480,36 @@ namespace GameboyTetris
                             active.MoveRight(shapes.FindAll(o => o.id != active.id));
                             timeSinceMove = 0;
                             movePiece.Play();
+                            if (showGhost)
+                            {
+                                ghost.SetActive(true);
+                                for (int i = 0; i < active.sprites.Count; i++)
+                                {
+                                    ghost.sprites[i].position = active.sprites[i].position;
+                                }
+                                while (ghost.active)
+                                {
+                                    ghost.Update(shapes.FindAll(o => o.id != active.id));
+                                }
+                            }
                         }
                         else if (Input.directional.X < 0)
                         {
                             active.MoveLeft(shapes.FindAll(o => o.id != active.id));
                             timeSinceMove = 0;
                             movePiece.Play();
+                            if (showGhost)
+                            {
+                                ghost.SetActive(true);
+                                for (int i = 0; i < active.sprites.Count; i++)
+                                {
+                                    ghost.sprites[i].position = active.sprites[i].position;
+                                }
+                                while (ghost.active)
+                                {
+                                    ghost.Update(shapes.FindAll(o => o.id != active.id));
+                                }
+                            }
                         }
                     }
                     if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Enter))
