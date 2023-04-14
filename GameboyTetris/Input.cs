@@ -20,6 +20,9 @@ namespace GameboyTetris
         public static Vector2 directional { private set; get; }
         public static Vector2 normalizedDirectional { private set; get; }
 
+        public static bool xDirectionDown { private set; get; }
+        public static bool yDirectionDown { private set; get; }
+
         public static KeyboardState GetState()
         {
             previousKeyState = currentKeyState;
@@ -45,6 +48,10 @@ namespace GameboyTetris
             directional += new Vector2(GetButton(Keys.Right) || GetButton(Keys.D) ? 1 : 0, 0);
             directional = new Vector2(Math.Clamp(directional.X, -1, 1), Math.Clamp(directional.Y, -1, 1));
             //normalizedDirectional = AdvancedMath.ClampMagnitude(directional, 1);
+
+            xDirectionDown = GetButtonDown(Buttons.DPadLeft) || GetButtonDown(Buttons.DPadRight) || GetButtonDown(Keys.Left) || GetButtonDown(Keys.Right) || GetButtonDown(Keys.A) || GetButtonDown(Keys.D);
+            yDirectionDown = GetButtonDown(Buttons.DPadUp) || GetButtonDown(Buttons.DPadDown) || GetButtonDown(Keys.Up) || GetButtonDown(Keys.Down) || GetButtonDown(Keys.W) || GetButtonDown(Keys.S);
+
             return currentKeyState;
         }
 

@@ -159,6 +159,7 @@ namespace GameboyTetris
             background = new MapScreen(logo, "logo");
             screens.Add(background);
             screens.Add(new MapScreen(titleScreen, "title"));
+            screens.Add(new MapScreen(Content.Load<Texture2D>("tetrisSettings"), "settings"));
             font = Content.Load<SpriteFont>("font");
             font.DefaultCharacter = '#';
             pixel = Content.Load<Texture2D>("Square1");
@@ -205,6 +206,7 @@ namespace GameboyTetris
             upComingShapes.Shuffle();
 
             mySong[1] = Content.Load<Song>("Audio/Music/01. Title");
+            mySong[5] = mySong[1];
             mySong[2] = Content.Load<Song>("Audio/Music/03. A-Type Music (Korobeiniki)");
             mySong[4] = Content.Load<Song>("Audio/Music/18. Game Over");
 
@@ -276,14 +278,17 @@ namespace GameboyTetris
                 else if (selectedLeft && Input.directional.X > 0 && !(Input.GetButton(Buttons.Start) || Input.GetButton(Microsoft.Xna.Framework.Input.Keys.Enter)))
                 {
                     selectedLeft = false;
-                    cursor.position.X = 90;
+                    cursor.position.X = 89;
                 }
                 if (Input.GetButtonDown(Buttons.Start) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Enter))
                 {
                     if (!selectedLeft)
                     {
-                        selectedLeft = true;
-                        cursor.position.X = 11;
+                        /*selectedLeft = true;
+                        cursor.position.X = 11;*/
+                        gs = GameState.settings;
+                        background = screens.Find(o => o.name == "settings");
+                        SetMusic();
                     }
                     else
                     {
@@ -410,7 +415,7 @@ namespace GameboyTetris
                         return;
                     }
                     timeSinceMove += (float)gameTime.ElapsedGameTime.TotalSeconds;
-                    if (timeSinceMove > timeforMove)
+                    if (timeSinceMove > timeforMove || Input.xDirectionDown)
                     {
                         if (Input.directional.X > 0)
                         {
