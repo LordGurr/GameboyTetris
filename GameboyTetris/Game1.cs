@@ -1,6 +1,8 @@
 ﻿using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 
 //using SharpDX.Direct3D9;
 using System;
@@ -8,11 +10,12 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
+using System.Xml.Linq;
 
 namespace GameboyTetris
 {
     internal enum GameState
-    { logo, startscreen, playing, paused };
+    { logo, startscreen, playing, paused, gameover, settings };
 
     public class Game1 : Game
     {
@@ -61,6 +64,16 @@ namespace GameboyTetris
         };
 
         private int score = 0;
+
+        private SoundEffect logoSound;
+        private SoundEffect movePiece;
+        private SoundEffect rotatePiece;
+
+        private SoundEffect pieceLanded;
+        private SoundEffect lineCleared;
+        private SoundEffect tetris;
+
+        private Song[] mySong = new Song[6];
 
         public Game1()
         {
@@ -152,13 +165,14 @@ namespace GameboyTetris
             MapScreen map = screens.Find(o => o.name == "title");
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 135), SpriteText.DrawMode.Middle, font, "© " + DateTime.Now.Year + " Gustav"));
             //map.textOnScreen.Add(new SpriteText(pixel, new Vector2(40, 115), SpriteText.DrawMode.MiddleUnderline, "1"))
-            for (int i = 0; i < 2; i++)
+            for (int i = 0; i < 1; i++)
             {
                 string temp = (i + 1) + " player";
                 //_spriteBatch.DrawString(font, temp, new Vector2(40 + 80 * i, 115) - (font.MeasureString(temp) / 2 * 0.25f), new Color(7, 24, 33), 0, new Vector2(), 0.25f, SpriteEffects.None, 0);
                 //_spriteBatch.Draw(pixel, new Rectangle(40 + 80 * i - (int)Math.Round((font.MeasureString(temp).X / 2 * 0.25f)), (int)Math.Round(114 + (font.MeasureString(temp).Y / 2 * 0.25f)), (int)Math.Round(font.MeasureString(temp).X * 0.25f), 1), new Color(48, 104, 80));
                 map.textOnScreen.Add(new SpriteText(pixel, new Vector2(40 + 80 * i, 115), SpriteText.DrawMode.MiddleUnderline, font, temp));
             }
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(40 + 80, 115), SpriteText.DrawMode.MiddleUnderline, font, "Settings"));
             cursor = new SpriteText(pixel, new Vector2(11, 115), SpriteText.DrawMode.Middle, font, "€");
             map.textOnScreen.Add(cursor);
             Texture2D texture = Content.Load<Texture2D>("tetrisPlayingTextlessCol");
@@ -189,7 +203,34 @@ namespace GameboyTetris
                 upComingShapes.Add(i);
             }
             upComingShapes.Shuffle();
+
+            mySong[1] = Content.Load<Song>("Audio/Music/01. Title");
+            mySong[2] = Content.Load<Song>("Audio/Music/03. A-Type Music (Korobeiniki)");
+            mySong[4] = Content.Load<Song>("Audio/Music/18. Game Over");
+
+            logoSound = Content.Load<SoundEffect>("Audio/SoundEffects/nintendo-game-boy-startup");
+            logoSound.Play();
+
+            movePiece = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-18-move-piece");
+            rotatePiece = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-19-rotate-piece");
+
+            pieceLanded = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-27-piece-landed");
+            lineCleared = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-21-line-clear"); ;
+            tetris = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-22-tetris-4-lines");
             //font.            // TODO: use this.Content to load your game content here
+        }
+
+        private void SetMusic()
+        {
+            if (mySong[(int)gs] != null)
+            {
+                MediaPlayer.Play(mySong[(int)gs]);
+                MediaPlayer.IsRepeating = true;
+            }
+            else
+            {
+                MediaPlayer.Stop();
+            }
         }
 
         protected override void Update(GameTime gameTime)
@@ -220,6 +261,7 @@ namespace GameboyTetris
             if (gs == GameState.logo && stopwatch.Elapsed.TotalSeconds > timeForLogo)
             {
                 gs = GameState.startscreen;
+                SetMusic();
                 //background.SetTex(titleScreen);
                 background = screens.Find(o => o.name == "title");
                 stopwatch.Restart();
@@ -247,6 +289,7 @@ namespace GameboyTetris
                     {
                         gs = GameState.playing;
                         background = screens.Find(o => o.name == "playing");
+                        SetMusic();
                     }
                 }
             }
@@ -278,7 +321,7 @@ namespace GameboyTetris
                 {
                     float speed = timeforUpdate - ((float)linescleared / 60);
                     speed = speed < 0.1f ? 0.1f : speed;
-                    if (timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 8)
+                    if (timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 10)
                     {
                         timeSinceUpdate = 0;
                         active.Update(shapes.FindAll(o => o.id != active.id));
@@ -292,13 +335,26 @@ namespace GameboyTetris
                                 shapes.Clear();
                                 linescleared = 0;
                                 background = screens.Find(o => o.name == "title");
+                                SetMusic();
                             }
                             else
                             {
-                                int tempScore = CheckForLine();
-                                if (tempScore > 0)
+                                int tempLinesCleared = CheckForLine();
+                                if (tempLinesCleared > 0)
                                 {
-                                    score += lineScore[tempScore - 1];
+                                    score += lineScore[tempLinesCleared - 1];
+                                    if (tempLinesCleared > 3)
+                                    {
+                                        tetris.Play();
+                                    }
+                                    else
+                                    {
+                                        lineCleared.Play();
+                                    }
+                                }
+                                else
+                                {
+                                    pieceLanded.Play();
                                 }
                             }
                             return;
@@ -307,10 +363,12 @@ namespace GameboyTetris
                     if (Input.GetButtonDown(Buttons.A) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.X))
                     {
                         active.RotateRight(shapes.FindAll(o => o.id != active.id));
+                        rotatePiece.Play();
                     }
                     else if (Input.GetButtonDown(Buttons.B) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Z))
                     {
                         active.RotateLeft(shapes.FindAll(o => o.id != active.id));
+                        rotatePiece.Play();
                     }
                     else if (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W))
                     {
@@ -327,13 +385,26 @@ namespace GameboyTetris
                             shapes.Clear();
                             linescleared = 0;
                             background = screens.Find(o => o.name == "title");
+                            SetMusic();
                         }
                         else
                         {
-                            int tempScore = CheckForLine();
-                            if (tempScore > 0)
+                            int tempLinesCleared = CheckForLine();
+                            if (tempLinesCleared > 0)
                             {
-                                score += lineScore[tempScore - 1];
+                                score += lineScore[tempLinesCleared - 1];
+                                if (tempLinesCleared > 3)
+                                {
+                                    tetris.Play();
+                                }
+                                else
+                                {
+                                    lineCleared.Play();
+                                }
+                            }
+                            else
+                            {
+                                pieceLanded.Play();
                             }
                         }
                         return;
@@ -345,11 +416,13 @@ namespace GameboyTetris
                         {
                             active.MoveRight(shapes.FindAll(o => o.id != active.id));
                             timeSinceMove = 0;
+                            movePiece.Play();
                         }
                         else if (Input.directional.X < 0)
                         {
                             active.MoveLeft(shapes.FindAll(o => o.id != active.id));
                             timeSinceMove = 0;
+                            movePiece.Play();
                         }
                     }
                     if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Enter))
@@ -357,6 +430,7 @@ namespace GameboyTetris
                         gs = GameState.paused;
                         MapScreen map = screens.Find(o => o.name == "playing");
                         map.textOnScreen.Add(pausedText);
+                        SetMusic();
                     }
                 }
             }
@@ -367,6 +441,7 @@ namespace GameboyTetris
                     gs = GameState.playing;
                     MapScreen map = screens.Find(o => o.name == "playing");
                     map.textOnScreen.Remove(pausedText);
+                    SetMusic();
                 }
             }
             // TODO: Add your update logic here

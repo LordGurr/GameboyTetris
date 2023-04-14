@@ -13,6 +13,84 @@
 
 #---------------------------------- Content ---------------------------------#
 
+#begin Audio/Music/01. Title.wav
+/importer:WavImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:Audio/Music/01. Title.wav
+
+#begin Audio/Music/03. A-Type Music (Korobeiniki).wav
+/importer:WavImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:Audio/Music/03. A-Type Music (Korobeiniki).wav
+
+#begin Audio/Music/04. B-Type Music.wav
+/importer:WavImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:Audio/Music/04. B-Type Music.wav
+
+#begin Audio/Music/05. C-Type Music.wav
+/importer:WavImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:Audio/Music/05. C-Type Music.wav
+
+#begin Audio/Music/17. High Score.wav
+/importer:WavImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:Audio/Music/17. High Score.wav
+
+#begin Audio/Music/18. Game Over.wav
+/importer:WavImporter
+/processor:SongProcessor
+/processorParam:Quality=Best
+/build:Audio/Music/18. Game Over.wav
+
+#begin Audio/SoundEffects/nintendo-game-boy-startup.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/SoundEffects/nintendo-game-boy-startup.wav
+
+#begin Audio/SoundEffects/tetris-gb-17-menu-sound.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/SoundEffects/tetris-gb-17-menu-sound.wav
+
+#begin Audio/SoundEffects/tetris-gb-18-move-piece.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/SoundEffects/tetris-gb-18-move-piece.wav
+
+#begin Audio/SoundEffects/tetris-gb-19-rotate-piece.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/SoundEffects/tetris-gb-19-rotate-piece.wav
+
+#begin Audio/SoundEffects/tetris-gb-21-line-clear.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/SoundEffects/tetris-gb-21-line-clear.wav
+
+#begin Audio/SoundEffects/tetris-gb-22-tetris-4-lines.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/SoundEffects/tetris-gb-22-tetris-4-lines.wav
+
+#begin Audio/SoundEffects/tetris-gb-27-piece-landed.wav
+/importer:WavImporter
+/processor:SoundEffectProcessor
+/processorParam:Quality=Best
+/build:Audio/SoundEffects/tetris-gb-27-piece-landed.wav
+
 #begin font.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
@@ -67,6 +145,18 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:tetrisPlayingTextlessCol.png
+
+#begin tetrisSettings.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:tetrisSettings.png
 
 #begin TetrisSpriteSheet.png
 /importer:TextureImporter

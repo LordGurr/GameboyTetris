@@ -52,6 +52,7 @@ namespace GameboyTetris
         //    position = _position;
         //    //origin = new Vector2();
         //}
+        private float scale = 0.25f;
 
         public void Draw(SpriteBatch _spriteBatch)
         {
