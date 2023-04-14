@@ -134,12 +134,12 @@ namespace GameboyTetris
             new Vector2(1,1),// Right Hook
             new Vector2(2,1), // Left Hook
             new Vector2(2,1), // Right Twist
-           new Vector2(-1,-1), //new Vector2(2,1), // Triangle
+            new Vector2(-1,-1), //new Vector2(2,1), // Triangle
             new Vector2(2,1), // Left Twist
-          new Vector2(-1,-1)  //new Vector2(2.5f,2.5f),//Kub
+            new Vector2(-1,-1)  //new Vector2(2.5f,2.5f),//Kub
         };
 
-        public Shape(Texture2D texture, int _id, Random rng)
+        public Shape(Texture2D texture, int _id, Random rng, int _shape)
         {
             sprites = new List<Sprite>();
             //sprites.Add(new Sprite(texture, new Vector2(0 + xOffset, 0 + yOffset)));
@@ -148,7 +148,7 @@ namespace GameboyTetris
             //sprites.Add(new Sprite(texture, new Vector2(16 + xOffset, 8 + yOffset)));
             blocks = new Sprite[16];
 
-            shape = rng.Next(AllShapes.Length);
+            shape = _shape;
             for (int i = 0; i < AllShapes[shape].Length; i++)
             {
                 sprites.Add(new Sprite(texture, AllShapes[shape][i].ToVector2()));

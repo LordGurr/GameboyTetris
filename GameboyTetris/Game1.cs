@@ -38,7 +38,7 @@ namespace GameboyTetris
         private Shape active;
         private float timeforUpdate = 1;
         private float timeSinceUpdate = 0;
-        private float timeforMove = 0.2f;
+        private float timeforMove = 0.15f;
         private float timeSinceMove = 0;
         private int ids = 0;
         private Texture2D[] blocks;
@@ -46,6 +46,9 @@ namespace GameboyTetris
         private int linescleared = 0;
         private SpriteText linesClearedText;
         private SpriteText scoreText;
+        private SpriteText pausedText;
+
+        private List<int> upComingShapes;
 
         private bool debug = false;
 
@@ -168,10 +171,24 @@ namespace GameboyTetris
             map.textOnScreen.Add(linesClearedText);
             scoreText = new SpriteText(pixel, new Vector2(120, 21), SpriteText.DrawMode.Normal, font, "0");
             map.textOnScreen.Add(scoreText);
+            pausedText = new SpriteText(pixel, new Vector2(57, 72), SpriteText.DrawMode.Middle, font, "Paused");
 
             int xCount = 8;
             int yCount = 1;
             blocks = AdvancedMath.Split(Content.Load<Texture2D>("TetrisSpriteSheet"), 8, 8, out xCount, out yCount);
+            Texture2D[] tempBlocks = new Texture2D[blocks.Length - 2];
+            for (int i = 0; i < tempBlocks.Length; i++)
+            {
+                tempBlocks[i] = blocks[i + 2];
+            }
+            blocks = tempBlocks;
+
+            upComingShapes = new List<int>();
+            for (int i = 0; i < 7; i++)
+            {
+                upComingShapes.Add(i);
+            }
+            upComingShapes.Shuffle();
             //font.            // TODO: use this.Content to load your game content here
         }
 
@@ -240,15 +257,26 @@ namespace GameboyTetris
                 timeSinceUpdate += (float)gameTime.ElapsedGameTime.TotalSeconds;
                 if (!ShapeActive)
                 {
-                    active = new Shape(blocks[rng.Next(blocks.Length)], ids, rng);
+                    active = new Shape(blocks[rng.Next(blocks.Length)], ids, rng, upComingShapes[0]);
+                    upComingShapes.RemoveAt(0);
                     ids++;
                     ShapeActive = true;
                     screens.Find(o => o.name == "playing").spritesInScreen.AddRange(active.sprites);
                     shapes.Add(active);
+                    if (upComingShapes.Count < 7)
+                    {
+                        List<int> tempUpComingShapes = new List<int>();
+                        for (int i = 0; i < 7; i++)
+                        {
+                            tempUpComingShapes.Add(i);
+                        }
+                        tempUpComingShapes.Shuffle();
+                        upComingShapes.AddRange(tempUpComingShapes);
+                    }
                 }
                 else
                 {
-                    float speed = timeforUpdate - ((float)linescleared / 40);
+                    float speed = timeforUpdate - ((float)linescleared / 60);
                     speed = speed < 0.1f ? 0.1f : speed;
                     if (timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 8)
                     {
@@ -324,6 +352,21 @@ namespace GameboyTetris
                             timeSinceMove = 0;
                         }
                     }
+                    if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Enter))
+                    {
+                        gs = GameState.paused;
+                        MapScreen map = screens.Find(o => o.name == "playing");
+                        map.textOnScreen.Add(pausedText);
+                    }
+                }
+            }
+            else if (gs == GameState.paused)
+            {
+                if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Enter))
+                {
+                    gs = GameState.playing;
+                    MapScreen map = screens.Find(o => o.name == "playing");
+                    map.textOnScreen.Remove(pausedText);
                 }
             }
             // TODO: Add your update logic here
@@ -417,7 +460,7 @@ namespace GameboyTetris
             //_spriteBatch.Draw();
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
 
-            background.Draw(_spriteBatch);
+            background.Draw(_spriteBatch, gs == GameState.playing);
             if (debug)
             {
                 int size = 4;
@@ -624,12 +667,15 @@ namespace GameboyTetris
             texture = _texture;
         }
 
-        public void Draw(SpriteBatch _spriteBatch)
+        public void Draw(SpriteBatch _spriteBatch, bool drawSprites)
         {
             _spriteBatch.Draw(texture, new Vector2(), Color.White);
-            for (int i = 0; i < spritesInScreen.Count; i++)
+            if (drawSprites)
             {
-                spritesInScreen[i].Draw(_spriteBatch);
+                for (int i = 0; i < spritesInScreen.Count; i++)
+                {
+                    spritesInScreen[i].Draw(_spriteBatch);
+                }
             }
             for (int i = 0; i < textOnScreen.Count; i++)
             {
@@ -722,6 +768,24 @@ namespace GameboyTetris
         public Vector2 ToVector2()
         {
             return new Vector2(X, Y);
+        }
+    }
+
+    internal static class MyExtensions
+    {
+        private static Random rng = new Random();
+
+        public static void Shuffle<T>(this IList<T> list)
+        {
+            int n = list.Count;
+            while (n > 1)
+            {
+                n--;
+                int k = rng.Next(n + 1);
+                T value = list[k];
+                list[k] = list[n];
+                list[n] = value;
+            }
         }
     }
 }
