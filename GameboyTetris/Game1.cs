@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
 using System.Xml.Linq;
+using Keys = Microsoft.Xna.Framework.Input.Keys;
 
 namespace GameboyTetris
 {
@@ -77,6 +78,7 @@ namespace GameboyTetris
         private Shape ghost;
 
         private bool showGhost = true;
+        private bool modernControls = false;
 
         public Game1()
         {
@@ -433,7 +435,7 @@ namespace GameboyTetris
                             }
                         }
                     }
-                    else if (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W))
+                    else if (!modernControls && (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W)) || modernControls && (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Space) || Input.GetButtonDown(Buttons.Y)))
                     {
                         timeSinceUpdate = 0;
                         while (active.active)
@@ -471,6 +473,23 @@ namespace GameboyTetris
                             }
                         }
                         return;
+                    }
+                    else if (modernControls && (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W)))
+                    {
+                        active.RotateLeft(shapes.FindAll(o => o.id != active.id));
+                        rotatePiece.Play();
+                        if (showGhost)
+                        {
+                            ghost.SetActive(true);
+                            for (int i = 0; i < active.sprites.Count; i++)
+                            {
+                                ghost.sprites[i].position = active.sprites[i].position;
+                            }
+                            while (ghost.active)
+                            {
+                                ghost.Update(shapes.FindAll(o => o.id != active.id));
+                            }
+                        }
                     }
                     timeSinceMove += (float)gameTime.ElapsedGameTime.TotalSeconds;
                     if (timeSinceMove > timeforMove || Input.xDirectionDown)
