@@ -22,6 +22,8 @@ namespace GameboyTetris
 
         private int shape;
 
+        public int GetShape { get => shape; }
+
         //private static Sprite[][] AllShapes = new Sprite[][]
         //{
         //     new Sprite[]
@@ -139,16 +141,17 @@ namespace GameboyTetris
             new Vector2(-1,-1)  //new Vector2(2.5f,2.5f),//Kub
         };
 
-        public Shape(Shape shape)
+        public Shape(Shape shape, Color color)
         {
             sprites = new List<Sprite>();
             for (int i = 0; i < shape.sprites.Count; i++)
             {
                 sprites.Add(new Sprite(shape.sprites[i].tex, shape.sprites[i].position));
-                sprites[^1].AccessColor = Color.White * 0.4f;
+                sprites[^1].AccessColor = color;
             }
             origin = shape.origin;
             active = true;
+            this.shape = shape.shape;
         }
 
         public Shape(Texture2D texture, int _id, Random rng, int _shape)
@@ -187,6 +190,37 @@ namespace GameboyTetris
 
             id = _id;
             active = true;
+        }
+
+        public void ResetRotation()
+        {
+            for (int i = 0; i < sprites.Count; i++)
+            {
+                sprites[i].position = AllShapes[shape][i].ToVector2();
+                sprites[i].position *= 8;
+                sprites[i].position += new Vector2(xOffset, yOffset);
+                origin = new Vector2();
+            }
+            for (int i = 0; i < sprites.Count; i++)
+            {
+                origin += sprites[i].position;
+            }
+            origin /= sprites.Count;
+            if (Origins[shape].X > -1)
+            {
+                origin = Origins[shape];
+                origin *= 8;
+                origin += new Vector2(xOffset, yOffset);
+            }
+        }
+
+        public void GoToSlot(Vector2 newOrigin)
+        {
+            Vector2 difference = newOrigin - origin;
+            for (int i = 0; i < sprites.Count; i++)
+            {
+                sprites[i].position += difference;
+            }
         }
 
         private int Rotate(int px, int py, int r)

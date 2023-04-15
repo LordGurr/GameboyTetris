@@ -10,13 +10,17 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Windows.Forms;
-using System.Xml.Linq;
 using Keys = Microsoft.Xna.Framework.Input.Keys;
 
 namespace GameboyTetris
 {
     internal enum GameState
     { logo, startscreen, playing, paused, gameover, settings };
+
+    internal enum Used
+    {
+        thisTurn, PreviusTurn, Longer
+    };
 
     public class Game1 : Game
     {
@@ -55,6 +59,8 @@ namespace GameboyTetris
         private List<int> upComingShapes;
 
         private bool debug = false;
+        private SpriteText originText;
+        private SpriteText timeSinceUpdateText;
 
         private int[] lineScore = new int[4]
         {
@@ -77,8 +83,36 @@ namespace GameboyTetris
         private Song[] mySong = new Song[6];
         private Shape ghost;
 
+        private Shape carry;
+        private Used carryUsed = Used.Longer;
+
+        private Shape next;
+        private SpriteText nextOrCarry;
+
         private bool showGhost = true;
         private bool modernControls = false;
+        private bool carryOn = true;
+        private bool soundOn = true;
+        private bool musicOn = true;
+        private bool lockDelay = true;
+        private int currentSetting = 0;
+
+        private float timeForFlash = 0.3f;
+        private float timeSinceFlash = 0;
+
+        private float lockDelayLength = 0.5f;
+        private bool lastMoveFatal = false;
+
+        /*bool[] settings = new bool[]
+        {
+            showGhost,
+            modernControls,
+            carryOn,
+        };*/
+
+        private Vector2 slotPosition = new Vector2(136, 117);
+
+        private SpriteText[] settingCursors;
 
         public Game1()
         {
@@ -181,6 +215,67 @@ namespace GameboyTetris
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(40 + 80, 115), SpriteText.DrawMode.MiddleUnderline, font, "Settings"));
             cursor = new SpriteText(pixel, new Vector2(11, 115), SpriteText.DrawMode.Middle, font, "€");
             map.textOnScreen.Add(cursor);
+            settingCursors = new SpriteText[5];
+            map = screens.Find(o => o.name == "settings");
+            for (int i = 0; i < settingCursors.Length; i++)
+            {
+                settingCursors[i] = new SpriteText(pixel, new Vector2(30, 42 + 16 * i), SpriteText.DrawMode.Middle, font, "€");
+                map.textOnScreen.Add(settingCursors[i]);
+                map.textOnScreen.Add(new SpriteText(pixel, new Vector2(45, 42 + 16 * i), SpriteText.DrawMode.Middle, font, "On"));
+                map.textOnScreen.Add(new SpriteText(pixel, new Vector2(100, 42 + 16 * i), SpriteText.DrawMode.Middle, font, "Off"));
+                string temp = string.Empty;
+                switch (i)
+                {
+                    case 0:
+                        temp = "Show Ghost";
+                        break;
+
+                    case 1:
+                        temp = "Modern Controls";
+                        break;
+
+                    case 2:
+                        temp = "Activate Hold";
+                        break;
+
+                    case 3:
+                        temp = "Sound";
+                        break;
+
+                    case 4:
+                        temp = "Music";
+                        break;
+                }
+                bool setTrue = true;
+                switch (i)
+                {
+                    case 0:
+                        setTrue = showGhost;
+                        break;
+
+                    case 1:
+                        setTrue = modernControls;
+                        break;
+
+                    case 2:
+                        setTrue = carryOn;
+                        break;
+
+                    case 3:
+                        setTrue = soundOn;
+                        break;
+
+                    case 4:
+                        setTrue = musicOn;
+                        break;
+                }
+                if (!setTrue)
+                {
+                    settingCursors[i].position.X = 80;
+                }
+                map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 35 + 16 * i), SpriteText.DrawMode.Middle, font, temp));
+            }
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 26), SpriteText.DrawMode.MiddleUnderline, font, "Settings"));
             Texture2D texture = Content.Load<Texture2D>("tetrisPlayingTextlessCol");
             screens.Add(new MapScreen(texture, "playing"));
             map = screens.Find(o => o.name == "playing");
@@ -192,6 +287,11 @@ namespace GameboyTetris
             scoreText = new SpriteText(pixel, new Vector2(120, 21), SpriteText.DrawMode.Normal, font, "0");
             map.textOnScreen.Add(scoreText);
             pausedText = new SpriteText(pixel, new Vector2(57, 72), SpriteText.DrawMode.Middle, font, "Paused");
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(120, 100), SpriteText.DrawMode.Normal, font, carryOn ? "H" : "N"));
+            nextOrCarry = map.textOnScreen[^1];
+
+            originText = new SpriteText(pixel, new Vector2(17, -2), SpriteText.DrawMode.Normal, font, "");
+            timeSinceUpdateText = new SpriteText(pixel, new Vector2(17, 10), SpriteText.DrawMode.Normal, font, "");
 
             int xCount = 8;
             int yCount = 1;
@@ -216,8 +316,10 @@ namespace GameboyTetris
             mySong[4] = Content.Load<Song>("Audio/Music/18. Game Over");
 
             logoSound = Content.Load<SoundEffect>("Audio/SoundEffects/nintendo-game-boy-startup");
-            logoSound.Play();
-
+            if (soundOn)
+            {
+                logoSound.Play();
+            }
             movePiece = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-18-move-piece");
             rotatePiece = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-19-rotate-piece");
 
@@ -229,7 +331,7 @@ namespace GameboyTetris
 
         private void SetMusic()
         {
-            if (mySong[(int)gs] != null)
+            if (musicOn && mySong[(int)gs] != null)
             {
                 MediaPlayer.Play(mySong[(int)gs]);
                 MediaPlayer.IsRepeating = true;
@@ -237,6 +339,72 @@ namespace GameboyTetris
             else
             {
                 MediaPlayer.Stop();
+            }
+        }
+
+        private bool GetSetting()
+        {
+            bool isTrue = true;
+            switch (currentSetting)
+            {
+                case 0:
+                    isTrue = showGhost;
+                    break;
+
+                case 1:
+                    isTrue = modernControls;
+                    break;
+
+                case 2:
+                    isTrue = carryOn;
+                    break;
+
+                case 3:
+                    isTrue = soundOn;
+                    break;
+
+                case 4:
+                    isTrue = musicOn;
+                    break;
+            }
+            return isTrue;
+        }
+
+        private void SetSetting(bool isTrue)
+        {
+            switch (currentSetting)
+            {
+                case 0:
+                    showGhost = isTrue;
+                    break;
+
+                case 1:
+                    modernControls = isTrue;
+                    break;
+
+                case 2:
+                    carryOn = isTrue;
+                    break;
+
+                case 3:
+                    soundOn = isTrue;
+                    break;
+
+                case 4:
+                    if (musicOn != isTrue)
+                    {
+                        if (!isTrue)
+                        {
+                            MediaPlayer.Stop();
+                        }
+                        else
+                        {
+                            musicOn = isTrue;
+                            SetMusic();
+                        }
+                    }
+                    musicOn = isTrue;
+                    break;
             }
         }
 
@@ -280,10 +448,22 @@ namespace GameboyTetris
                     selectedLeft = true;
                     cursor.position.X = 11;
                 }
-                else if (selectedLeft && Input.directional.X > 0 && !(Input.GetButton(Buttons.Start) || Input.GetButton(Microsoft.Xna.Framework.Input.Keys.Enter)))
+                else if (selectedLeft && (Input.directional.X > 0) && !(Input.GetButton(Buttons.Start) || Input.GetButton(Microsoft.Xna.Framework.Input.Keys.Enter)))
                 {
                     selectedLeft = false;
                     cursor.position.X = 89;
+                }
+                else if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.LeftShift) || Input.GetButtonDown(Buttons.Back))
+                {
+                    selectedLeft = !selectedLeft;
+                    if (selectedLeft)
+                    {
+                        cursor.position.X = 11;
+                    }
+                    else
+                    {
+                        cursor.position.X = 89;
+                    }
                 }
                 if (Input.GetButtonDown(Buttons.Start) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Enter))
                 {
@@ -303,6 +483,84 @@ namespace GameboyTetris
                     }
                 }
             }
+            else if (gs == GameState.settings)
+            {
+                timeSinceFlash += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                timeSinceMove += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (timeSinceFlash > timeForFlash)
+                {
+                    settingCursors[currentSetting].text = settingCursors[currentSetting].text == "€" ? "§" : "€";
+                    timeSinceFlash = 0;
+                }
+                if (timeSinceMove > timeforMove * 7 || Input.yDirectionDown)
+                {
+                    if (Input.directional.Y > 0)
+                    {
+                        timeSinceMove = 0;
+                        currentSetting++;
+                        if (currentSetting > settingCursors.Length - 1)
+                        {
+                            currentSetting = settingCursors.Length - 1;
+                        }
+                        else
+                        {
+                            settingCursors[currentSetting - 1].text = "€";
+                        }
+                        if (soundOn)
+                        {
+                            movePiece.Play();
+                        }
+                    }
+                    else if (Input.directional.Y < 0)
+                    {
+                        timeSinceMove = 0;
+                        currentSetting--;
+                        if (currentSetting < 0)
+                        {
+                            currentSetting = 0;
+                        }
+                        else
+                        {
+                            settingCursors[currentSetting + 1].text = "€";
+                        }
+                        if (soundOn)
+                        {
+                            movePiece.Play();
+                        }
+                    }
+                }
+                bool isTrue = GetSetting();
+                if (timeSinceMove > timeforMove || Input.xDirectionDown) // 30 80
+                {
+                    bool tempSet = false;
+                    if (Input.directional.X > 0 && isTrue)
+                    {
+                        timeSinceMove = 0;
+                        isTrue = !isTrue;
+                        settingCursors[currentSetting].position.X = 80;
+                        tempSet = true;
+                    }
+                    else if (Input.directional.X < 0 && !isTrue)
+                    {
+                        timeSinceMove = 0;
+                        isTrue = !isTrue;
+                        settingCursors[currentSetting].position.X = 30;
+                        tempSet = true;
+                    }
+                    SetSetting(isTrue);
+                    if (tempSet && soundOn)
+                    {
+                        movePiece.Play();
+                    }
+                }
+                if (Input.GetButtonDown(Keys.Space) || Input.GetButtonDown(Keys.Back) || Input.GetButtonDown(Keys.Z) || Input.GetButtonDown(Keys.X) || Input.GetButtonDown(Keys.C) || Input.GetButtonDown(Keys.Enter))
+                {
+                    gs = GameState.startscreen;
+                    background = screens.Find(o => o.name == "title");
+                    SetMusic();
+                    nextOrCarry.text = carryOn ? "H" : "N";
+                }
+            }
             if (gs == GameState.playing)
             {
                 linesClearedText.text = linescleared.ToString();
@@ -310,7 +568,7 @@ namespace GameboyTetris
                 timeSinceUpdate += (float)gameTime.ElapsedGameTime.TotalSeconds;
                 if (!ShapeActive)
                 {
-                    active = new Shape(blocks[rng.Next(blocks.Length)], ids, rng, upComingShapes[0]);
+                    active = new Shape(blocks[upComingShapes[0] > 5 ? 0 : upComingShapes[0]], ids, rng, upComingShapes[0]);
                     if (showGhost)
                     {
                         if (ghost != null)
@@ -320,7 +578,7 @@ namespace GameboyTetris
                                 screens.Find(o => o.name == "playing").spritesInScreen.Remove(ghost.sprites[i]);
                             }
                         }
-                        ghost = new Shape(active);
+                        ghost = new Shape(active, Color.White * 0.4f);
                         while (ghost.active)
                         {
                             ghost.Update(shapes.FindAll(o => o.id != active.id));
@@ -342,69 +600,115 @@ namespace GameboyTetris
                         tempUpComingShapes.Shuffle();
                         upComingShapes.AddRange(tempUpComingShapes);
                     }
+                    if (!carryOn)
+                    {
+                        if (next != null)
+                        {
+                            for (int i = 0; i < next.sprites.Count; i++)
+                            {
+                                screens.Find(o => o.name == "playing").spritesInScreen.Remove(next.sprites[i]);
+                            }
+                        }
+                        next = new Shape(blocks[upComingShapes[0] > 5 ? 0 : upComingShapes[0]], -1, rng, upComingShapes[0]);
+                        next.GoToSlot(slotPosition);
+                        screens.Find(o => o.name == "playing").spritesInScreen.AddRange(next.sprites);
+                    }
+                    if (carryUsed == Used.thisTurn)
+                    {
+                        carryUsed = Used.PreviusTurn;
+                    }
+                    else if (carryUsed == Used.PreviusTurn)
+                    {
+                        carryUsed = Used.Longer;
+                    }
+
+                    lastMoveFatal = false;
                 }
                 else
                 {
                     float speed = timeforUpdate - ((float)linescleared / 60);
-                    speed = speed < 0.1f ? 0.1f : speed;
-                    if (timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 10)
+                    speed = speed < 0.2f ? 0.2f : speed;
+                    if ((timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 10) && (!lockDelay || (lockDelay && !lastMoveFatal)) || (lockDelay && lastMoveFatal && timeSinceUpdate > speed + lockDelayLength))
                     {
                         timeSinceUpdate = 0;
                         active.Update(shapes.FindAll(o => o.id != active.id));
                         if (!active.active)
                         {
-                            ShapeActive = false;
-                            if (active.AboveBorder())
+                            if (lockDelay && Input.directional.Y <= 0 && !lastMoveFatal)
                             {
-                                screens.Find(o => o.name == "playing").spritesInScreen.Clear();
-                                gs = GameState.startscreen;
-                                shapes.Clear();
-                                linescleared = 0;
-                                background = screens.Find(o => o.name == "title");
-                                SetMusic();
+                                lastMoveFatal = true;
+                                active.SetActive(true);
                             }
                             else
                             {
-                                int tempLinesCleared = CheckForLine();
-                                if (tempLinesCleared > 0)
+                                ShapeActive = false;
+                                if (active.AboveBorder())
                                 {
-                                    score += lineScore[tempLinesCleared - 1];
-                                    if (tempLinesCleared > 3)
-                                    {
-                                        tetris.Play();
-                                    }
-                                    else
-                                    {
-                                        lineCleared.Play();
-                                    }
+                                    screens.Find(o => o.name == "playing").spritesInScreen.Clear();
+                                    gs = GameState.startscreen;
+                                    shapes.Clear();
+                                    linescleared = 0;
+                                    background = screens.Find(o => o.name == "title");
+                                    SetMusic();
+                                    carry = null;
                                 }
                                 else
                                 {
-                                    pieceLanded.Play();
+                                    int tempLinesCleared = CheckForLine();
+                                    if (tempLinesCleared > 0)
+                                    {
+                                        score += lineScore[tempLinesCleared - 1];
+                                        if (soundOn)
+                                        {
+                                            if (tempLinesCleared > 3)
+                                            {
+                                                tetris.Play();
+                                            }
+                                            else
+                                            {
+                                                lineCleared.Play();
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        if (soundOn)
+                                        {
+                                            pieceLanded.Play();
+                                        }
+                                    }
+                                    if (carry != null)
+                                    {
+                                        screens.Find(o => o.name == "playing").spritesInScreen.AddRange(carry.sprites);
+                                    }
                                 }
+                                return;
                             }
-                            return;
                         }
                         else
                         {
-                            if (showGhost)
-                            {
-                                ghost.SetActive(true);
-                                for (int i = 0; i < active.sprites.Count; i++)
-                                {
-                                    ghost.sprites[i].position = active.sprites[i].position;
-                                }
-                                while (ghost.active)
-                                {
-                                    ghost.Update(shapes.FindAll(o => o.id != active.id));
-                                }
-                            }
+                            lastMoveFatal = false;
+                            //if (showGhost)
+                            //{
+                            //    ghost.SetActive(true);
+                            //    for (int i = 0; i < active.sprites.Count; i++)
+                            //    {
+                            //        ghost.sprites[i].position = active.sprites[i].position;
+                            //    }
+                            //    while (ghost.active)
+                            //    {
+                            //        ghost.Update(shapes.FindAll(o => o.id != active.id));
+                            //    }
+                            //}
                         }
                     }
                     if (Input.GetButtonDown(Buttons.A) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.X))
                     {
                         active.RotateRight(shapes.FindAll(o => o.id != active.id));
-                        rotatePiece.Play();
+                        if (soundOn)
+                        {
+                            rotatePiece.Play();
+                        }
                         if (showGhost)
                         {
                             ghost.SetActive(true);
@@ -417,11 +721,19 @@ namespace GameboyTetris
                                 ghost.Update(shapes.FindAll(o => o.id != active.id));
                             }
                         }
+                        //if (lastMoveFatal)
+                        //{
+                        //    hasMovedSinceFatal = false;
+                        //}
+                        //lastMoveFatal = false;
                     }
                     else if (Input.GetButtonDown(Buttons.B) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Z))
                     {
                         active.RotateLeft(shapes.FindAll(o => o.id != active.id));
-                        rotatePiece.Play();
+                        if (soundOn)
+                        {
+                            rotatePiece.Play();
+                        }
                         if (showGhost)
                         {
                             ghost.SetActive(true);
@@ -434,6 +746,11 @@ namespace GameboyTetris
                                 ghost.Update(shapes.FindAll(o => o.id != active.id));
                             }
                         }
+                        //if (lastMoveFatal)
+                        //{
+                        //    hasMovedSinceFatal = false;
+                        //}
+                        //lastMoveFatal = false;
                     }
                     else if (!modernControls && (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W)) || modernControls && (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Space) || Input.GetButtonDown(Buttons.Y)))
                     {
@@ -451,6 +768,7 @@ namespace GameboyTetris
                             linescleared = 0;
                             background = screens.Find(o => o.name == "title");
                             SetMusic();
+                            carry = null;
                         }
                         else
                         {
@@ -458,18 +776,28 @@ namespace GameboyTetris
                             if (tempLinesCleared > 0)
                             {
                                 score += lineScore[tempLinesCleared - 1];
-                                if (tempLinesCleared > 3)
+                                if (soundOn)
                                 {
-                                    tetris.Play();
-                                }
-                                else
-                                {
-                                    lineCleared.Play();
+                                    if (tempLinesCleared > 3)
+                                    {
+                                        tetris.Play();
+                                    }
+                                    else
+                                    {
+                                        lineCleared.Play();
+                                    }
                                 }
                             }
                             else
                             {
-                                pieceLanded.Play();
+                                if (soundOn)
+                                {
+                                    pieceLanded.Play();
+                                }
+                            }
+                            if (carry != null)
+                            {
+                                screens.Find(o => o.name == "playing").spritesInScreen.AddRange(carry.sprites);
                             }
                         }
                         return;
@@ -477,7 +805,10 @@ namespace GameboyTetris
                     else if (modernControls && (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W)))
                     {
                         active.RotateLeft(shapes.FindAll(o => o.id != active.id));
-                        rotatePiece.Play();
+                        if (soundOn)
+                        {
+                            rotatePiece.Play();
+                        }
                         if (showGhost)
                         {
                             ghost.SetActive(true);
@@ -490,6 +821,37 @@ namespace GameboyTetris
                                 ghost.Update(shapes.FindAll(o => o.id != active.id));
                             }
                         }
+                        //if (lastMoveFatal)
+                        //{
+                        //    hasMovedSinceFatal = false;
+                        //}
+                        //lastMoveFatal = false;
+                    }
+                    else if (carryOn && carryUsed == Used.Longer && (Input.GetButtonDown(Keys.C) || Input.GetButtonDown(Buttons.LeftShoulder) || Input.GetButtonDown(Buttons.RightShoulder)))
+                    {
+                        carryUsed = Used.thisTurn;
+                        bool carryIsNull = !(carry != null);// if carry is null. Written like this due to horror stories heard
+                        Shape tempCarry;
+                        if (!carryIsNull)
+                        {
+                            for (int i = 0; i < carry.sprites.Count; i++)
+                            {
+                                screens.Find(o => o.name == "playing").spritesInScreen.Remove(carry.sprites[i]);
+                            }
+                            tempCarry = new Shape(carry, Color.White);
+                            upComingShapes.Insert(0, tempCarry.GetShape);
+                        }
+                        carry = new Shape(active, Color.White);
+                        carry.ResetRotation();
+                        carry.GoToSlot(slotPosition);
+                        screens.Find(o => o.name == "playing").spritesInScreen.AddRange(carry.sprites);
+                        shapes.Remove(active);
+                        for (int i = 0; i < active.sprites.Count; i++)
+                        {
+                            screens.Find(o => o.name == "playing").spritesInScreen.Remove(active.sprites[i]);
+                        }
+                        active.SetActive(false);
+                        ShapeActive = false;
                     }
                     timeSinceMove += (float)gameTime.ElapsedGameTime.TotalSeconds;
                     if (timeSinceMove > timeforMove || Input.xDirectionDown)
@@ -498,7 +860,10 @@ namespace GameboyTetris
                         {
                             active.MoveRight(shapes.FindAll(o => o.id != active.id));
                             timeSinceMove = 0;
-                            movePiece.Play();
+                            if (soundOn)
+                            {
+                                movePiece.Play();
+                            }
                             if (showGhost)
                             {
                                 ghost.SetActive(true);
@@ -511,12 +876,20 @@ namespace GameboyTetris
                                     ghost.Update(shapes.FindAll(o => o.id != active.id));
                                 }
                             }
+                            //if (lastMoveFatal)
+                            //{
+                            //    hasMovedSinceFatal = false;
+                            //}
+                            //lastMoveFatal = false;
                         }
                         else if (Input.directional.X < 0)
                         {
                             active.MoveLeft(shapes.FindAll(o => o.id != active.id));
                             timeSinceMove = 0;
-                            movePiece.Play();
+                            if (soundOn)
+                            {
+                                movePiece.Play();
+                            }
                             if (showGhost)
                             {
                                 ghost.SetActive(true);
@@ -529,6 +902,11 @@ namespace GameboyTetris
                                     ghost.Update(shapes.FindAll(o => o.id != active.id));
                                 }
                             }
+                            //if (lastMoveFatal)
+                            //{
+                            //    hasMovedSinceFatal = false;
+                            //}
+                            //lastMoveFatal = false;
                         }
                     }
                     if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Enter))
@@ -642,10 +1020,15 @@ namespace GameboyTetris
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
 
             background.Draw(_spriteBatch, gs == GameState.playing);
-            if (debug)
+            if (debug && gs == GameState.playing)
             {
                 int size = 4;
-                _spriteBatch.Draw(pixel, active.AccessOrigin, null, Color.White, 0, new Vector2(size / 2), size, SpriteEffects.None, 0);
+                _spriteBatch.Draw(pixel, active.AccessOrigin, null, Color.White, 0, Vector2.Zero, size, SpriteEffects.None, 0);
+                _spriteBatch.Draw(pixel, slotPosition, null, Color.White, 0, Vector2.Zero, size, SpriteEffects.None, 0);
+                originText.text = active.AccessOrigin.ToString();
+                originText.Draw(_spriteBatch);
+                timeSinceUpdateText.text = timeSinceUpdate.ToString("F1");
+                timeSinceUpdateText.Draw(_spriteBatch);
             }
             /*string temp = "© 2021 Gustav";
             _spriteBatch.DrawString(font, temp, new Vector2(80, 135) - (font.MeasureString(temp) / 2 * 0.25f), new Color(7, 24, 33), 0, new Vector2(), 0.25f, SpriteEffects.None, 0);
