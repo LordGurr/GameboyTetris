@@ -114,6 +114,10 @@ namespace GameboyTetris
 
         private SpriteText[] settingCursors;
 
+        private bool clearLineAnim = false;
+        private float lengthOfClearLineAnim = 0.5f;
+        private float timeSinceClearLineAnim = 0;
+
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
