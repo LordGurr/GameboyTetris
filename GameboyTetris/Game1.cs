@@ -117,6 +117,14 @@ namespace GameboyTetris
         private bool clearLineAnim = false;
         private float lengthOfClearLineAnim = 0.5f;
         private float timeSinceClearLineAnim = 0;
+        private float timeForClearFlash = 0.125f;
+        private float timeSinceClearFlash = 0;
+
+        private List<Sprite> clearedSprites = new List<Sprite>();
+        private List<Texture2D> clearedTextures = new List<Texture2D>();
+        private List<int> clearedLinesToRemove = new List<int>();
+        private bool clearedSetToWhite = true;
+        private Texture2D clearedTex;
 
         public Game1()
         {
@@ -335,6 +343,8 @@ namespace GameboyTetris
             pieceLanded = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-27-piece-landed");
             lineCleared = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-21-line-clear"); ;
             tetris = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-22-tetris-4-lines");
+
+            clearedTex = Content.Load<Texture2D>("clearedTex");
             //font.            // TODO: use this.Content to load your game content here
         }
 
@@ -564,7 +574,7 @@ namespace GameboyTetris
                         movePiece.Play();
                     }
                 }
-                if (Input.GetButtonDown(Keys.Space) || Input.GetButtonDown(Keys.Back) || Input.GetButtonDown(Keys.Z) || Input.GetButtonDown(Keys.X) || Input.GetButtonDown(Keys.C) || Input.GetButtonDown(Keys.Enter))
+                if (Input.GetButtonDown(Keys.Space) || Input.GetButtonDown(Keys.Back) || Input.GetButtonDown(Keys.Z) || Input.GetButtonDown(Keys.X) || Input.GetButtonDown(Keys.C) || Input.GetButtonDown(Keys.Enter) || Input.GetButtonDown(Keys.LeftShift))
                 {
                     gs = GameState.startscreen;
                     background = screens.Find(o => o.name == "title");
@@ -577,6 +587,74 @@ namespace GameboyTetris
                 linesClearedText.text = linescleared.ToString();
                 scoreText.text = score.ToString();
                 timeSinceUpdate += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                if (clearLineAnim)
+                {
+                    timeSinceClearLineAnim += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    timeSinceClearFlash += (float)gameTime.ElapsedGameTime.TotalSeconds;
+                    if (timeSinceClearLineAnim < lengthOfClearLineAnim)
+                    {
+                        if (timeSinceClearFlash > timeForClearFlash)
+                        {
+                            if (clearedSetToWhite)
+                            {
+                                for (int i = 0; i < clearedSprites.Count; i++)
+                                {
+                                    clearedSprites[i].tex = clearedTex;
+                                }
+                            }
+                            else
+                            {
+                                for (int i = 0; i < clearedSprites.Count; i++)
+                                {
+                                    clearedSprites[i].tex = clearedTextures[i];
+                                }
+                            }
+                            timeSinceClearFlash = 0;
+                            clearedSetToWhite = !clearedSetToWhite;
+                        }
+                    }
+                    else
+                    {
+                        MapScreen temp = screens.Find(o => o.name == "playing");
+                        for (int i = 0; i < clearedSprites.Count; i++)
+                        {
+                            temp.spritesInScreen.Remove(clearedSprites[i]);
+                            for (int j = 0; j < shapes.Count; j++)
+                            {
+                                if (shapes[j].sprites.Contains(clearedSprites[i]))
+                                {
+                                    shapes[j].sprites.Remove(clearedSprites[i]);
+                                    break;
+                                }
+                            }
+                        }
+                        for (int i = 0; i < shapes.Count; i++)
+                        {
+                            for (int j = 0; j < shapes[i].sprites.Count; j++)
+                            {
+                                for (int k = 0; k < clearedLinesToRemove.Count; k++)
+                                {
+                                    if (shapes[i].sprites[j].position.Y < clearedLinesToRemove[k])
+                                    {
+                                        shapes[i].sprites[j].position.Y += shapes[i].sprites[j].rectangle.Height;
+                                    }
+                                }
+                            }
+                        }
+                        clearLineAnim = false;
+                        clearedSprites.Clear();
+                        clearedLinesToRemove.Clear();
+                        clearedTextures.Clear();
+                        clearedSetToWhite = true;
+                        timeSinceClearLineAnim = 0;
+                        timeSinceClearFlash = 0;
+                        if (soundOn)
+                        {
+                            pieceLanded.Play();
+                        }
+                    }
+                    return;
+                }
                 if (!ShapeActive)
                 {
                     active = new Shape(blocks[upComingShapes[0] > 5 ? 0 : upComingShapes[0]], ids, rng, upComingShapes[0]);
@@ -958,6 +1036,9 @@ namespace GameboyTetris
 
         private int CheckForLine()
         {
+            clearedSprites.Clear();
+            clearedLinesToRemove.Clear();
+            clearedTextures.Clear();
             int clearedLines = 0;
             for (int i = 1; i < 138; i += 8)
             {
@@ -970,12 +1051,18 @@ namespace GameboyTetris
                 {
                     linescleared++;
                     clearedLines++;
+                    clearedLinesToRemove.Add(i);
+                    clearLineAnim = true;
                     for (int a = 0; a < shapes.Count; a++)
                     {
                         for (int b = 0; b < shapes[a].sprites.Count; b++)
                         {
                             if (shapes[a].sprites[b].position.Y == i)
                             {
+                                clearedSprites.Add(shapes[a].sprites[b]);
+                                clearedTextures.Add(shapes[a].sprites[b].tex);
+
+                                /*
                                 MapScreen temp = screens.Find(o => o.name == "playing");
                                 int index = temp.spritesInScreen.FindIndex(o => o.position == shapes[a].sprites[b].position);
                                 if (index >= 0)
@@ -983,11 +1070,13 @@ namespace GameboyTetris
                                     temp.spritesInScreen.RemoveAt(index);
                                 }
                                 shapes[a].sprites.RemoveAt(b);
-                                b--;
+                                b--;*/
                             }
                             else if (shapes[a].sprites[b].position.Y < i)
                             {
+                                /*
                                 shapes[a].sprites[b].position.Y += shapes[a].sprites[b].rectangle.Height;
+                                */
                             }
                         }
                     }
