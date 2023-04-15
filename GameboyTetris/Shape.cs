@@ -409,6 +409,22 @@ namespace GameboyTetris
             }
         }
 
+        public bool IsColliding(List<Shape> colliding)
+        {
+            for (int i = 0; i < sprites.Count; i++)
+            {
+                for (int a = 0; a < colliding.Count; a++)
+                {
+                    //if (colliding[a].sprites.Any(o => o.BasicIntersects(new Rectangle((int)sprites[i].position.X - sprites[i].rectangle.Width, (int)sprites[i].position.Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
+                    if (colliding[a].sprites.Any(o => o.position == new Vector2(sprites[i].position.X, sprites[i].position.Y)))
+                    {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         public void MoveLeft(List<Shape> colliding)
         {
             if (active)
