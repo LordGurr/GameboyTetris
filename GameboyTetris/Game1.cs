@@ -735,6 +735,7 @@ namespace GameboyTetris
                         SetMusic();
                         carry = null;
                         ShapeActive = false;
+                        score = 0;
                     }
                 }
                 else
