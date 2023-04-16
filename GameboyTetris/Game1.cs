@@ -285,6 +285,10 @@ namespace GameboyTetris
                     case 4:
                         setTrue = musicOn;
                         break;
+
+                    case 5:
+                        setTrue = lockDelay;
+                        break;
                 }
                 if (!setTrue)
                 {
@@ -385,6 +389,10 @@ namespace GameboyTetris
                 case 4:
                     isTrue = musicOn;
                     break;
+
+                case 5:
+                    isTrue = lockDelay;
+                    break;
             }
             return isTrue;
         }
@@ -423,6 +431,10 @@ namespace GameboyTetris
                         }
                     }
                     musicOn = isTrue;
+                    break;
+
+                case 5:
+                    lockDelay = isTrue;
                     break;
             }
         }
