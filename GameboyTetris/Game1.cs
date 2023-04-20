@@ -3,8 +3,6 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
-
-//using SharpDX.Direct3D9;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,6 +19,18 @@ namespace GameboyTetris
     {
         thisTurn, PreviusTurn, Longer
     };
+
+    internal struct Score
+    {
+        public int score;
+        public string name;
+
+        public Score(int score, string name)
+        {
+            this.score = score;
+            this.name = name;
+        }
+    }
 
     public class Game1 : Game
     {
@@ -72,6 +82,8 @@ namespace GameboyTetris
 
         private int score = 0;
         private int softDropScore = 0;
+        private Score[] highScore = new Score[3];
+        private InputBox myInputBox;
 
         private SoundEffect logoSound;
         private SoundEffect movePiece;
@@ -82,7 +94,7 @@ namespace GameboyTetris
         private SoundEffect tetris;
         private SoundEffect gameOver;
 
-        private Song[] mySong = new Song[6];
+        private Song[] mySong = new Song[7];
         private Shape ghost;
 
         private Shape carry;
@@ -213,6 +225,7 @@ namespace GameboyTetris
             screens.Add(background);
             screens.Add(new MapScreen(titleScreen, "title"));
             screens.Add(new MapScreen(Content.Load<Texture2D>("tetrisSettings"), "settings"));
+            screens.Add(new MapScreen(Content.Load<Texture2D>("tetrisSettings"), "highScore"));
             font = Content.Load<SpriteFont>("font");
             font.DefaultCharacter = '#';
             pixel = Content.Load<Texture2D>("Square1");
@@ -299,6 +312,22 @@ namespace GameboyTetris
                 map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, start + 17 * i), SpriteText.DrawMode.Middle, font, temp));
             }
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 18), SpriteText.DrawMode.MiddleUnderline, font, "Settings"));
+
+            map = screens.Find(o => o.name == "highScore");
+            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 18), SpriteText.DrawMode.MiddleUnderline, font, "High Score"));
+            myInputBox = new InputBox(new Rectangle(25, 110, 110, 10), pixel, "", new Color(134, 192, 108), false, 15);
+            for (int i = 0; i < highScore.Length; i++)
+            {
+                highScore[i] = new Score(0, string.Empty);
+            }
+            for (int i = 0; i < highScore.Length; i++)
+            {
+                string temp = (i + 1) + ". " + (highScore[i].name != string.Empty ? highScore[i].name : "...");
+                map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 25 * i), SpriteText.DrawMode.Normal, font, temp));
+                temp = highScore[i].score != 0 ? highScore[i].score.ToString() : "----";
+                map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 10 + 25 * i), SpriteText.DrawMode.Normal, font, temp));
+            }
+
             Texture2D texture = Content.Load<Texture2D>("tetrisPlayingTextlessCol");
             screens.Add(new MapScreen(texture, "playing"));
             screens.Add(new MapScreen(texture, "gameOver"));
@@ -350,6 +379,7 @@ namespace GameboyTetris
             mySong[1] = Content.Load<Song>("Audio/Music/01. Title");
             mySong[5] = mySong[1];
             mySong[2] = Content.Load<Song>("Audio/Music/03. A-Type Music (Korobeiniki)");
+            mySong[6] = Content.Load<Song>("Audio/Music/17. High Score");
             //mySong[4] = Content.Load<Song>("Audio/Music/18. Game Over");
 
             logoSound = Content.Load<SoundEffect>("Audio/SoundEffects/nintendo-game-boy-startup");
@@ -610,16 +640,63 @@ namespace GameboyTetris
                     nextOrCarry.text = carryOn ? "H" : "N";
                 }
             }
+            if (gs == GameState.highScore)
+            {
+                if (Input.GetButtonDown(Keys.Enter))
+                {
+                    if (myInputBox.isSelected)
+                    {
+                        myInputBox.Deactivate(Window);
+                        List<Score> tempList = highScore.ToList();
+                        tempList.Add(new Score(score, myInputBox.text));
+                        tempList = tempList.OrderBy(o => o.score).ToList();
+                        tempList.Reverse();
+                        for (int i = 0; i < highScore.Length; i++)
+                        {
+                            highScore[i] = tempList[i];
+                        }
+                        MapScreen map = screens.Find(o => o.name == "highScore");
+                        map.textOnScreen.Clear();
+                        map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 18), SpriteText.DrawMode.MiddleUnderline, font, "High Score"));
+                        int start = 30;
+
+                        for (int i = 0; i < highScore.Length; i++)
+                        {
+                            string temp = (i + 1) + ". " + (highScore[i].name != string.Empty ? highScore[i].name : "...");
+                            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 25 * i), SpriteText.DrawMode.Normal, font, temp));
+                            temp = highScore[i].score != 0 ? highScore[i].score.ToString() : "----";
+                            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 10 + 25 * i), SpriteText.DrawMode.Normal, font, temp));
+                        }
+                        myInputBox.ClearText();
+                    }
+                    else
+                    {
+                        gs = GameState.startscreen;
+                        background = screens.Find(o => o.name == "title");
+                        score = 0;
+                        SetMusic();
+                    }
+                }
+            }
             if (gs == GameState.gameover)
             {
                 if (Input.GetButtonDown(Buttons.A) || Input.GetButtonDown(Buttons.Start) || Input.GetButtonDown(Keys.Enter) || Input.GetButtonDown(Keys.Space))
                 {
                     screens.Find(o => o.name == "playing").spritesInScreen.Clear();
-                    gs = GameState.startscreen;
                     linescleared = 0;
-                    background = screens.Find(o => o.name == "title");
+                    if (score > highScore[2].score)
+                    {
+                        myInputBox.Activate(Window);
+                    }
+                    gs = GameState.highScore;
+                    background = screens.Find(o => o.name == "highScore");
+                    //else
+                    //{
+                    //    gs = GameState.startscreen;
+                    //    background = screens.Find(o => o.name == "title");
+                    //    score = 0;
+                    //}
                     SetMusic();
-                    score = 0;
                 }
             }
             if (gs == GameState.playing)
@@ -1186,6 +1263,10 @@ namespace GameboyTetris
                 originText.Draw(_spriteBatch);
                 timeSinceUpdateText.text = timeSinceUpdate.ToString("F1");
                 timeSinceUpdateText.Draw(_spriteBatch);
+            }
+            if (gs == GameState.highScore && myInputBox.isSelected)
+            {
+                myInputBox.Draw(_spriteBatch, font);
             }
             /*string temp = "© 2021 Gustav";
             _spriteBatch.DrawString(font, temp, new Vector2(80, 135) - (font.MeasureString(temp) / 2 * 0.25f), new Color(7, 24, 33), 0, new Vector2(), 0.25f, SpriteEffects.None, 0);
