@@ -15,7 +15,7 @@ using Keys = Microsoft.Xna.Framework.Input.Keys;
 namespace GameboyTetris
 {
     internal enum GameState
-    { logo, startscreen, playing, paused, gameover, settings };
+    { logo, startscreen, playing, paused, gameover, settings, highScore };
 
     internal enum Used
     {
