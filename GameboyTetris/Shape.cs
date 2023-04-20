@@ -1,5 +1,6 @@
 ﻿using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
+using SharpDX.Direct2D1;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,8 +18,8 @@ namespace GameboyTetris
         public Vector2 AccessOrigin { get => origin; }
 
         public int id { private set; get; }
-        private int yOffset = 1;
-        private int xOffset = 41;
+        private int yOffset = 4;
+        private int xOffset = 44;
 
         private int shape;
 
@@ -298,7 +299,7 @@ namespace GameboyTetris
         //    setCoordinates(rotatedCoordinates.clone());
         //}
 
-        public void RotateRight(List<Shape> colliding)
+        public bool RotateRight(List<Shape> colliding)
         {
             if (active)
             {
@@ -313,15 +314,15 @@ namespace GameboyTetris
                 {
                     Vector2 temp = AdvancedMath.Rotate(sprites[i].position - origin, 90) + origin;
                     temp = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(temp.X - xOffset, MidpointRounding.AwayFromZero), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(temp.Y - yOffset, MidpointRounding.AwayFromZero), 8) + yOffset);
-                    if (temp.X < 17 || temp.X > 89 || temp.Y > 137)
+                    if (temp.X < 20 || temp.X > 92 || temp.Y > 140)
                     {
-                        return;
+                        return false;
                     }
                     for (int a = 0; a < colliding.Count; a++)
                     {
                         if (colliding[a].sprites.Any(o => o.position == temp))
                         {
-                            return;
+                            return false;
                         }
                     }
                 }
@@ -340,7 +341,9 @@ namespace GameboyTetris
                     }
                     origin /= sprites.Count;
                 }
+                return true;
             }
+            return false;
         }
 
         public void RotateLeft(List<Sprite> colliding)
@@ -371,25 +374,118 @@ namespace GameboyTetris
             }
         }
 
-        public void RotateLeft(List<Shape> colliding)
+        private bool IsPosValid(Vector2 temp, List<Shape> shapes, out bool outOfBounds, out int offsetRight, out int offsetLeft)
         {
+            offsetRight = 0;
+            offsetLeft = 0;
+            outOfBounds = false;
+            if (temp.X < 20 || temp.X > 92 || temp.Y > 140)
+            {
+                if (temp.X < 20)
+                {
+                    outOfBounds = true;
+                    if (temp.X - 20 < offsetLeft)
+                    {
+                        offsetLeft = (int)temp.X - 20;
+                    }
+                }
+                else if (temp.X > 92)
+                {
+                    outOfBounds = true;
+                    if (temp.X - 92 > offsetRight)
+                    {
+                        offsetRight = (int)temp.X - 92;
+                    }
+                }
+                else
+                {
+                    return true;
+                }
+            }
+            for (int a = 0; a < shapes.Count; a++)
+            {
+                for (int b = 0; b < shapes[a].sprites.Count; b++)
+                {
+                    if (shapes[a].sprites[b].position == temp)
+                    {
+                        if (temp.X < shapes[a].sprites[b].position.X)
+                        {
+                            outOfBounds = true;
+                            if (temp.X - shapes[a].sprites[b].position.X < offsetLeft)
+                            {
+                                offsetLeft = (int)temp.X - (int)shapes[a].sprites[b].position.X;
+                            }
+                        }
+                        else if (temp.X > shapes[a].sprites[b].position.X)
+                        {
+                            outOfBounds = true;
+                            if (temp.X - shapes[a].sprites[b].position.X > offsetRight)
+                            {
+                                offsetRight = (int)temp.X - (int)shapes[a].sprites[b].position.X;
+                            }
+                        }
+                        else
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        public bool RotateLeft(List<Shape> colliding)
+        {
+            bool isColliding = false;
+            int offsetRight = 0;
+            int offsetLeft = 0;
             if (active)
             {
                 for (int i = 0; i < sprites.Count; i++)
                 {
                     Vector2 temp = AdvancedMath.Rotate(sprites[i].position - origin, -90) + origin;
                     temp = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(temp.X - xOffset, MidpointRounding.AwayFromZero), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(temp.Y - yOffset, MidpointRounding.AwayFromZero), 8) + yOffset);
-                    if (temp.X < 17 || temp.X > 89 || temp.Y > 137)
+                    bool valid = IsPosValid(temp, colliding, out bool tempIsColliding, out int tempOffsetRight, out int tempOffsetLeft);
+                    if (valid)
                     {
-                        return;
+                        return false;
                     }
-                    for (int a = 0; a < colliding.Count; a++)
+
+                    isColliding = tempIsColliding ? tempIsColliding : isColliding;
+                    if (tempOffsetLeft < offsetLeft)
                     {
-                        if (colliding[a].sprites.Any(o => o.position == temp))
+                        offsetLeft = tempOffsetLeft;
+                    }
+                    if (tempOffsetRight > offsetRight)
+                    {
+                        offsetRight = tempOffsetRight;
+                    }
+                }
+                if (isColliding)
+                {
+                    if (offsetRight != 0 && offsetLeft != 0)
+                    {
+                        return false;
+                    }
+                    int tempOffset = offsetLeft != 0 ? offsetLeft : offsetRight;
+                    isColliding = false;
+                    offsetRight = 0;
+                    offsetLeft = 0;
+                    for (int i = 0; i < sprites.Count; i++)
+                    {
+                        Vector2 temp = AdvancedMath.Rotate(new Vector2(sprites[i].position.X - tempOffset, sprites[i].position.Y) - new Vector2(origin.X - tempOffset, origin.Y), -90) + new Vector2(origin.X - tempOffset, origin.Y);
+                        temp = new Vector2(AdvancedMath.GetNearestMultiple((int)Math.Round(temp.X - xOffset, MidpointRounding.AwayFromZero), 8) + xOffset, AdvancedMath.GetNearestMultiple((int)Math.Round(temp.Y - yOffset, MidpointRounding.AwayFromZero), 8) + yOffset);
+                        bool valid = IsPosValid(temp, colliding, out bool tempIsColliding, out int tempOffsetRight, out int tempOffsetLeft);
+                        if (valid || tempIsColliding)
                         {
-                            return;
+                            return false;
                         }
                     }
+                    for (int i = 0; i < sprites.Count; i++)
+                    {
+                        sprites[i].position.X -= tempOffset;
+                    }
+                    origin.X -= tempOffset;
                 }
                 for (int i = 0; i < sprites.Count; i++)
                 {
@@ -406,7 +502,9 @@ namespace GameboyTetris
                     }
                     origin /= sprites.Count;
                 }
+                return true;
             }
+            return false;
         }
 
         public bool IsColliding(List<Shape> colliding)
@@ -425,7 +523,7 @@ namespace GameboyTetris
             return false;
         }
 
-        public void MoveLeft(List<Shape> colliding)
+        public bool MoveLeft(List<Shape> colliding)
         {
             if (active)
             {
@@ -436,12 +534,12 @@ namespace GameboyTetris
                         //if (colliding[a].sprites.Any(o => o.BasicIntersects(new Rectangle((int)sprites[i].position.X - sprites[i].rectangle.Width, (int)sprites[i].position.Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
                         if (colliding[a].sprites.Any(o => o.position == new Vector2(sprites[i].position.X - sprites[i].rectangle.Width, sprites[i].position.Y)))
                         {
-                            return;
+                            return false;
                         }
                     }
-                    if (sprites[i].position.X - sprites[i].rectangle.Width < 17)
+                    if (sprites[i].position.X - sprites[i].rectangle.Width < 20)
                     {
-                        return;
+                        return false;
                     }
                 }
                 for (int i = 0; i < sprites.Count; i++)
@@ -462,10 +560,12 @@ namespace GameboyTetris
                 {
                     origin.X -= sprites[0].rectangle.Width;
                 }
+                return true;
             }
+            return false;
         }
 
-        public void MoveRight(List<Shape> colliding)
+        public bool MoveRight(List<Shape> colliding)
         {
             if (active)
             {
@@ -476,12 +576,12 @@ namespace GameboyTetris
                         //if (colliding[a].sprites.Any(o => o.BasicIntersects(new Rectangle((int)sprites[i].position.X + sprites[i].rectangle.Width, (int)sprites[i].position.Y, sprites[i].rectangle.Width, sprites[i].rectangle.Height))))
                         if (colliding[a].sprites.Any(o => o.position == new Vector2(sprites[i].position.X + sprites[i].rectangle.Width, sprites[i].position.Y)))
                         {
-                            return;
+                            return false;
                         }
                     }
-                    if (sprites[i].position.X + sprites[i].rectangle.Width > 89)
+                    if (sprites[i].position.X + sprites[i].rectangle.Width > 93)
                     {
-                        return;
+                        return false;
                     }
                 }
                 for (int i = 0; i < sprites.Count; i++)
@@ -502,7 +602,9 @@ namespace GameboyTetris
                 {
                     origin.X += sprites[0].rectangle.Width;
                 }
+                return true;
             }
+            return false;
         }
 
         public void Update(List<Sprite> colliding)
@@ -546,7 +648,7 @@ namespace GameboyTetris
                             return;
                         }
                     }
-                    if (sprites[i].position.Y + sprites[i].rectangle.Height > 137)
+                    if (sprites[i].position.Y + sprites[i].rectangle.Height > 140)
                     {
                         active = false;
                         return;

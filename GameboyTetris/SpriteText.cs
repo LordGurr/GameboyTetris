@@ -69,11 +69,11 @@ namespace GameboyTetris
             {
                 if (drawMode == DrawMode.MiddleUnderline)
                 {
-                    _spriteBatch.Draw(tex, new Rectangle((int)Math.Round(position.X) - (int)Math.Round((font.MeasureString(text).X / 2 * scale)), (int)Math.Round(position.Y + (font.MeasureString(text).Y / 2 * scale) - 1), (int)Math.Round(font.MeasureString(text).X * scale), 1), new Color(48, 104, 80));
+                    _spriteBatch.Draw(tex, new Rectangle((int)Math.Round(position.X) - (int)Math.Round((font.MeasureString(text).X / 2 * scale)), (int)Math.Round(position.Y + (font.MeasureString(text).Y / 2 * scale) - 1), (int)Math.Round(font.MeasureString(text).X * scale), 1), new Color(134, 192, 108));
                 }
                 else
                 {
-                    _spriteBatch.Draw(tex, new Rectangle((int)Math.Round(position.X), (int)Math.Round(position.Y + (font.MeasureString(text).Y / 2 * scale) - 1), (int)Math.Round(font.MeasureString(text).X * scale), 1), new Color(48, 104, 80));
+                    _spriteBatch.Draw(tex, new Rectangle((int)Math.Round(position.X), (int)Math.Round(position.Y + (font.MeasureString(text).Y / 2 * scale) - 1), (int)Math.Round(font.MeasureString(text).X * scale), 1), new Color(134, 192, 108));
                 }
             }
         }
@@ -93,11 +93,11 @@ namespace GameboyTetris
             {
                 if (drawMode == DrawMode.MiddleUnderline)
                 {
-                    _spriteBatch.Draw(tex, new Rectangle((int)Math.Round(position.X) - (int)Math.Round((font.MeasureString(text).X / 2 * scale)), (int)Math.Round(position.Y + (font.MeasureString(text).Y / 2 * scale) - 1), (int)Math.Round(font.MeasureString(text).X * scale), 1), new Color(48, 104, 80));
+                    _spriteBatch.Draw(tex, new Rectangle((int)Math.Round(position.X) - (int)Math.Round((font.MeasureString(text).X / 2 * scale)), (int)Math.Round(position.Y + (font.MeasureString(text).Y / 2 * scale) - 1), (int)Math.Round(font.MeasureString(text).X * scale), 1), new Color(134, 192, 108));
                 }
                 else
                 {
-                    _spriteBatch.Draw(tex, new Rectangle((int)Math.Round(position.X), (int)Math.Round(position.Y + (font.MeasureString(text).Y / 2 * scale) - 1), (int)Math.Round(font.MeasureString(text).X * scale), 1), new Color(48, 104, 80));
+                    _spriteBatch.Draw(tex, new Rectangle((int)Math.Round(position.X), (int)Math.Round(position.Y + (font.MeasureString(text).Y / 2 * scale) - 1), (int)Math.Round(font.MeasureString(text).X * scale), 1), new Color(134, 192, 108));
                 }
             }
         }

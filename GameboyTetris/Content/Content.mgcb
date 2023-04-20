@@ -43,11 +43,11 @@
 /processorParam:Quality=Best
 /build:Audio/Music/17. High Score.wav
 
-#begin Audio/Music/18. Game Over.wav
+#begin Audio/SoundEffects/18. Game Over.wav
 /importer:WavImporter
-/processor:SongProcessor
+/processor:SoundEffectProcessor
 /processorParam:Quality=Best
-/build:Audio/Music/18. Game Over.wav
+/build:Audio/SoundEffects/18. Game Over.wav
 
 #begin Audio/SoundEffects/nintendo-game-boy-startup.wav
 /importer:WavImporter
@@ -145,6 +145,18 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:Square1.png
+
+#begin tetrisGameOver.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:tetrisGameOver.png
 
 #begin tetrisPlayingTextlessCol.png
 /importer:TextureImporter

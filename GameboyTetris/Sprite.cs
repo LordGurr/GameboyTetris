@@ -88,7 +88,7 @@ namespace GameboyTetris
 
         public virtual void Draw(SpriteBatch _spriteBatch)
         {
-            _spriteBatch.Draw(tex, position, null, myColor, rotation, new Vector2(origin.X, origin.Y), playerScale, SpriteEffects.None, 1);
+            _spriteBatch.Draw(tex, position, null, myColor, rotation, new Vector2(origin.X * tex.Width, origin.Y * tex.Height), playerScale, SpriteEffects.None, 1);
         }
 
         public virtual void Draw(SpriteBatch _spriteBatch, Color color)

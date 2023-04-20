@@ -71,6 +71,7 @@ namespace GameboyTetris
         };
 
         private int score = 0;
+        private int softDropScore = 0;
 
         private SoundEffect logoSound;
         private SoundEffect movePiece;
@@ -79,6 +80,7 @@ namespace GameboyTetris
         private SoundEffect pieceLanded;
         private SoundEffect lineCleared;
         private SoundEffect tetris;
+        private SoundEffect gameOver;
 
         private Song[] mySong = new Song[6];
         private Shape ghost;
@@ -299,6 +301,7 @@ namespace GameboyTetris
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 18), SpriteText.DrawMode.MiddleUnderline, font, "Settings"));
             Texture2D texture = Content.Load<Texture2D>("tetrisPlayingTextlessCol");
             screens.Add(new MapScreen(texture, "playing"));
+            screens.Add(new MapScreen(texture, "gameOver"));
             map = screens.Find(o => o.name == "playing");
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 11), SpriteText.DrawMode.Middle, font, "Score"));
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(131, 52), SpriteText.DrawMode.Middle, font, "Level"));
@@ -310,6 +313,19 @@ namespace GameboyTetris
             pausedText = new SpriteText(pixel, new Vector2(57, 72), SpriteText.DrawMode.Middle, font, "Paused");
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(120, 100), SpriteText.DrawMode.Normal, font, carryOn ? "H" : "N"));
             nextOrCarry = map.textOnScreen[^1];
+
+            MapScreen gameOverMap = screens.Find(o => o.name == "gameOver");
+            for (int i = 0; i < map.textOnScreen.Count; i++)
+            {
+                gameOverMap.textOnScreen.Add(map.textOnScreen[i]);
+            }
+            gameOverMap.spritesInScreen.Add(new Sprite(Content.Load<Texture2D>("tetrisGameOver"), new Vector2(26, 16), Vector2.Zero));
+            gameOverMap.textOnScreen.Add(new SpriteText(pixel, new Vector2(57, 30), SpriteText.DrawMode.MiddleUnderline, font, "Game"));
+            gameOverMap.textOnScreen.Add(new SpriteText(pixel, new Vector2(57, 49), SpriteText.DrawMode.MiddleUnderline, font, "Over"));
+
+            gameOverMap.textOnScreen.Add(new SpriteText(pixel, new Vector2(57, 85), SpriteText.DrawMode.Middle, font, "Please"));
+            gameOverMap.textOnScreen.Add(new SpriteText(pixel, new Vector2(57, 105), SpriteText.DrawMode.Middle, font, "Try"));
+            gameOverMap.textOnScreen.Add(new SpriteText(pixel, new Vector2(57, 125), SpriteText.DrawMode.Middle, font, "Again¢"));
 
             originText = new SpriteText(pixel, new Vector2(17, -2), SpriteText.DrawMode.Normal, font, "");
             timeSinceUpdateText = new SpriteText(pixel, new Vector2(17, 10), SpriteText.DrawMode.Normal, font, "");
@@ -334,7 +350,7 @@ namespace GameboyTetris
             mySong[1] = Content.Load<Song>("Audio/Music/01. Title");
             mySong[5] = mySong[1];
             mySong[2] = Content.Load<Song>("Audio/Music/03. A-Type Music (Korobeiniki)");
-            mySong[4] = Content.Load<Song>("Audio/Music/18. Game Over");
+            //mySong[4] = Content.Load<Song>("Audio/Music/18. Game Over");
 
             logoSound = Content.Load<SoundEffect>("Audio/SoundEffects/nintendo-game-boy-startup");
             if (soundOn)
@@ -347,7 +363,7 @@ namespace GameboyTetris
             pieceLanded = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-27-piece-landed");
             lineCleared = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-21-line-clear"); ;
             tetris = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-22-tetris-4-lines");
-
+            gameOver = Content.Load<SoundEffect>("Audio/SoundEffects/18. Game Over");
             clearedTex = Content.Load<Texture2D>("clearedTex");
             //font.            // TODO: use this.Content to load your game content here
         }
@@ -594,6 +610,18 @@ namespace GameboyTetris
                     nextOrCarry.text = carryOn ? "H" : "N";
                 }
             }
+            if (gs == GameState.gameover)
+            {
+                if (Input.GetButtonDown(Buttons.A) || Input.GetButtonDown(Buttons.Start) || Input.GetButtonDown(Keys.Enter) || Input.GetButtonDown(Keys.Space))
+                {
+                    screens.Find(o => o.name == "playing").spritesInScreen.Clear();
+                    gs = GameState.startscreen;
+                    linescleared = 0;
+                    background = screens.Find(o => o.name == "title");
+                    SetMusic();
+                    score = 0;
+                }
+            }
             if (gs == GameState.playing)
             {
                 linesClearedText.text = linescleared.ToString();
@@ -728,14 +756,13 @@ namespace GameboyTetris
                     if (active.IsColliding(shapes.FindAll(o => o.id != active.id)))
                     {
                         screens.Find(o => o.name == "playing").spritesInScreen.Clear();
-                        gs = GameState.startscreen;
+                        gs = GameState.gameover;
                         shapes.Clear();
-                        linescleared = 0;
-                        background = screens.Find(o => o.name == "title");
+                        background = screens.Find(o => o.name == "gameOver");
                         SetMusic();
-                        carry = null;
                         ShapeActive = false;
-                        score = 0;
+                        carry = null;
+                        gameOver.Play();
                     }
                 }
                 else
@@ -744,6 +771,10 @@ namespace GameboyTetris
                     speed = speed < 0.2f ? 0.2f : speed;
                     if ((timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 10) && (!lockDelay || (lockDelay && !lastMoveFatal)) || (lockDelay && lastMoveFatal && timeSinceUpdate > speed + lockDelayLength))
                     {
+                        if (Input.directional.Y > 0)
+                        {
+                            softDropScore++;
+                        }
                         timeSinceUpdate = 0;
                         active.Update(shapes.FindAll(o => o.id != active.id));
                         if (!active.active)
@@ -770,6 +801,8 @@ namespace GameboyTetris
                                 else*/
                                 {
                                     int tempLinesCleared = CheckForLine();
+                                    score += softDropScore;
+                                    softDropScore = 0;
                                     if (tempLinesCleared > 0)
                                     {
                                         score += lineScore[tempLinesCleared - 1];
@@ -819,8 +852,7 @@ namespace GameboyTetris
                     }
                     if (Input.GetButtonDown(Buttons.A) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.X))
                     {
-                        active.RotateRight(shapes.FindAll(o => o.id != active.id));
-                        if (soundOn)
+                        if (active.RotateRight(shapes.FindAll(o => o.id != active.id)) && soundOn)
                         {
                             rotatePiece.Play();
                         }
@@ -844,8 +876,7 @@ namespace GameboyTetris
                     }
                     else if (Input.GetButtonDown(Buttons.B) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Z))
                     {
-                        active.RotateLeft(shapes.FindAll(o => o.id != active.id));
-                        if (soundOn)
+                        if (active.RotateLeft(shapes.FindAll(o => o.id != active.id)) && soundOn)
                         {
                             rotatePiece.Play();
                         }
@@ -873,6 +904,7 @@ namespace GameboyTetris
                         while (active.active)
                         {
                             active.Update(shapes.FindAll(o => o.id != active.id));
+                            softDropScore++;
                         }
                         ShapeActive = false;
                         /*if (active.AboveBorder())
@@ -888,6 +920,8 @@ namespace GameboyTetris
                         else*/
                         {
                             int tempLinesCleared = CheckForLine();
+                            score += softDropScore;
+                            softDropScore = 0;
                             if (tempLinesCleared > 0)
                             {
                                 score += lineScore[tempLinesCleared - 1];
@@ -919,8 +953,7 @@ namespace GameboyTetris
                     }
                     else if (modernControls && (Input.GetButtonDown(Buttons.DPadUp) || Input.GetButtonDown(Buttons.LeftThumbstickUp) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.Up) || Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.W)))
                     {
-                        active.RotateLeft(shapes.FindAll(o => o.id != active.id));
-                        if (soundOn)
+                        if (active.RotateLeft(shapes.FindAll(o => o.id != active.id)) && soundOn)
                         {
                             rotatePiece.Play();
                         }
@@ -973,12 +1006,11 @@ namespace GameboyTetris
                     {
                         if (Input.directional.X > 0)
                         {
-                            active.MoveRight(shapes.FindAll(o => o.id != active.id));
-                            timeSinceMove = 0;
-                            if (soundOn)
+                            if (active.MoveRight(shapes.FindAll(o => o.id != active.id)) && soundOn)
                             {
                                 movePiece.Play();
                             }
+                            timeSinceMove = 0;
                             if (showGhost)
                             {
                                 ghost.SetActive(true);
@@ -999,12 +1031,11 @@ namespace GameboyTetris
                         }
                         else if (Input.directional.X < 0)
                         {
-                            active.MoveLeft(shapes.FindAll(o => o.id != active.id));
-                            timeSinceMove = 0;
-                            if (soundOn)
+                            if (active.MoveLeft(shapes.FindAll(o => o.id != active.id)) && soundOn)
                             {
                                 movePiece.Play();
                             }
+                            timeSinceMove = 0;
                             if (showGhost)
                             {
                                 ghost.SetActive(true);
@@ -1053,7 +1084,7 @@ namespace GameboyTetris
             clearedLinesToRemove.Clear();
             clearedTextures.Clear();
             int clearedLines = 0;
-            for (int i = 1; i < 138; i += 8)
+            for (int i = 4; i < 141; i += 8)
             {
                 int blocks = 0;
                 for (int a = 0; a < shapes.Count; a++)
@@ -1145,7 +1176,7 @@ namespace GameboyTetris
             //_spriteBatch.Draw();
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
 
-            background.Draw(_spriteBatch, gs == GameState.playing);
+            background.Draw(_spriteBatch, gs != GameState.paused);
             if (debug && gs == GameState.playing)
             {
                 int size = 4;
