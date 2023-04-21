@@ -3,9 +3,11 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 using Keys = Microsoft.Xna.Framework.Input.Keys;
@@ -29,6 +31,36 @@ namespace GameboyTetris
         {
             this.score = score;
             this.name = name;
+        }
+    }
+
+    internal struct Settings
+    {
+        public bool showGhost;
+        public bool modernControls;
+        public bool carryOn;
+        public bool soundOn;
+        public bool musicOn;
+        public bool lockDelay;
+
+        public Settings(byte temp)
+        {
+            showGhost = true;
+            modernControls = false;
+            carryOn = true;
+            soundOn = true;
+            musicOn = true;
+            lockDelay = true;
+        }
+
+        public Settings(bool showGhost, bool modernControls, bool carryOn, bool soundOn, bool musicOn, bool lockDelay)
+        {
+            this.showGhost = showGhost;
+            this.modernControls = modernControls;
+            this.carryOn = carryOn;
+            this.soundOn = soundOn;
+            this.musicOn = musicOn;
+            this.lockDelay = lockDelay;
         }
     }
 
@@ -84,6 +116,7 @@ namespace GameboyTetris
         private int softDropScore = 0;
         private Score[] highScore = new Score[3];
         private InputBox myInputBox;
+        private SpriteText writeNameText;
 
         private SoundEffect logoSound;
         private SoundEffect movePiece;
@@ -243,10 +276,33 @@ namespace GameboyTetris
             cursor = new SpriteText(pixel, new Vector2(11, 115), SpriteText.DrawMode.Middle, font, "€");
             map.textOnScreen.Add(cursor);
             settingCursors = new SpriteText[6];
+
+            if (File.Exists("Settings.txt"))
+            {
+                string temp = File.ReadAllText("Settings.txt");
+                Settings settings = JsonConvert.DeserializeObject<Settings>(temp);
+                SetSettings(settings);
+            }
+            if (File.Exists("HighScore.txt"))
+            {
+                string[] temp = File.ReadAllLines("HighScore.txt");
+                for (int i = 0; i < temp.Length && i < highScore.Length; i++)
+                {
+                    highScore[i] = JsonConvert.DeserializeObject<Score>(temp[i]);
+                }
+            }
+            else
+            {
+                for (int i = 0; i < highScore.Length; i++)
+                {
+                    highScore[i] = new Score(0, string.Empty);
+                }
+            }
             map = screens.Find(o => o.name == "settings");
             int start = 30;
             for (int i = 0; i < settingCursors.Length; i++)
             {
+                currentSetting = i;
                 settingCursors[i] = new SpriteText(pixel, new Vector2(30, start + 7 + 17 * i), SpriteText.DrawMode.Middle, font, "€");
                 map.textOnScreen.Add(settingCursors[i]);
                 map.textOnScreen.Add(new SpriteText(pixel, new Vector2(45, start + 7 + 17 * i), SpriteText.DrawMode.Middle, font, "On"));
@@ -311,15 +367,16 @@ namespace GameboyTetris
                 }
                 map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, start + 17 * i), SpriteText.DrawMode.Middle, font, temp));
             }
+            currentSetting = 0;
+
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 18), SpriteText.DrawMode.MiddleUnderline, font, "Settings"));
 
             map = screens.Find(o => o.name == "highScore");
+
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(80, 18), SpriteText.DrawMode.MiddleUnderline, font, "High Score"));
-            myInputBox = new InputBox(new Rectangle(25, 110, 110, 10), pixel, "", new Color(134, 192, 108), false, 15);
-            for (int i = 0; i < highScore.Length; i++)
-            {
-                highScore[i] = new Score(0, string.Empty);
-            }
+            myInputBox = new InputBox(new Rectangle(25, 115, 110, 10), pixel, "", new Color(134, 192, 108), false, 15);
+            writeNameText = new SpriteText(pixel, new Vector2(80, 105), SpriteText.DrawMode.MiddleUnderline, font, "Please Write Name");
+
             for (int i = 0; i < highScore.Length; i++)
             {
                 string temp = (i + 1) + ". " + (highScore[i].name != string.Empty ? highScore[i].name : "...");
@@ -485,6 +542,28 @@ namespace GameboyTetris
             }
         }
 
+        private void SetSettings(Settings settings)
+        {
+            showGhost = settings.showGhost;
+            modernControls = settings.modernControls;
+            carryOn = settings.carryOn;
+            soundOn = settings.soundOn;
+            if (musicOn != settings.musicOn)
+            {
+                if (!settings.musicOn)
+                {
+                    MediaPlayer.Stop();
+                }
+                else
+                {
+                    musicOn = settings.musicOn;
+                    SetMusic();
+                }
+            }
+            musicOn = settings.musicOn;
+            lockDelay = settings.lockDelay;
+        }
+
         protected override void Update(GameTime gameTime)
         {
             Input.GetState();
@@ -638,6 +717,14 @@ namespace GameboyTetris
                     background = screens.Find(o => o.name == "title");
                     SetMusic();
                     nextOrCarry.text = carryOn ? "H" : "N";
+                    Settings settings = new Settings(showGhost, modernControls, carryOn, soundOn, musicOn, lockDelay);
+                    if (!File.Exists("Settings.txt"))
+                    {
+                        FileStream fileStream = File.Create("Settings.txt");
+                        fileStream.Close();
+                    }
+                    string temp = JsonConvert.SerializeObject(settings);
+                    File.WriteAllText("Settings.txt", temp);
                 }
             }
             if (gs == GameState.highScore)
@@ -668,6 +755,18 @@ namespace GameboyTetris
                             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 10 + 25 * i), SpriteText.DrawMode.Normal, font, temp));
                         }
                         myInputBox.ClearText();
+
+                        if (!File.Exists("HighScore.txt"))
+                        {
+                            FileStream fileStream = File.Create("HighScore.txt");
+                            fileStream.Close();
+                        }
+                        string save = string.Empty;
+                        for (int i = 0; i < highScore.Length; i++)
+                        {
+                            save += JsonConvert.SerializeObject(highScore[i]) + "\n";
+                        }
+                        File.WriteAllText("HighScore.txt", save);
                     }
                     else
                     {
@@ -676,6 +775,7 @@ namespace GameboyTetris
                         score = 0;
                         SetMusic();
                     }
+                    screens.Find(o => o.name == "highScore").textOnScreen.Remove(writeNameText);
                 }
             }
             if (gs == GameState.gameover)
@@ -687,6 +787,7 @@ namespace GameboyTetris
                     if (score > highScore[2].score)
                     {
                         myInputBox.Activate(Window);
+                        screens.Find(o => o.name == "highScore").textOnScreen.Add(writeNameText);
                     }
                     gs = GameState.highScore;
                     background = screens.Find(o => o.name == "highScore");
