@@ -7,8 +7,10 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing.Drawing2D;
 using System.IO;
 using System.Linq;
+using System.Net.Mime;
 using System.Windows.Forms;
 using Keys = Microsoft.Xna.Framework.Input.Keys;
 
@@ -69,7 +71,7 @@ namespace GameboyTetris
         private GraphicsDeviceManager _graphics;
         private SpriteBatch _spriteBatch;
         private RetroScreen gameboy;
-        private MapScreen background;
+        private MapScreen currentScreen;
         private Texture2D titleScreen;
         private Texture2D logo;
         private GameState gs;
@@ -104,6 +106,14 @@ namespace GameboyTetris
         private bool debug = false;
         private SpriteText originText;
         private SpriteText timeSinceUpdateText;
+
+        private Color[] palette = new Color[4] // Från ljus till mörk
+        {
+            new Color(224,248,207),
+            new Color(134,192,108),
+            new Color(48, 104, 80),
+            new Color(7, 24, 33),
+        };
 
         private int[] lineScore = new int[4]
         {
@@ -199,6 +209,9 @@ namespace GameboyTetris
         private bool clearedSetToWhite = true;
         private Texture2D clearedTex;
 
+        private Effect mySpriteEffect;
+        private Texture2D gridTex;
+
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -280,8 +293,8 @@ namespace GameboyTetris
             titleScreen = Content.Load<Texture2D>("tetrisTitleScreenCropCol");
             logo = Content.Load<Texture2D>("Logo");
             //background = new MapScreen(logo, new Rectangle(0, 0, screenWidth, screenHeight));
-            background = new MapScreen(logo, "logo");
-            screens.Add(background);
+            currentScreen = new MapScreen(logo, "logo");
+            screens.Add(currentScreen);
             screens.Add(new MapScreen(titleScreen, "title"));
             screens.Add(new MapScreen(Content.Load<Texture2D>("tetrisSettings"), "settings"));
             screens.Add(new MapScreen(Content.Load<Texture2D>("tetrisSettings"), "highScore"));
@@ -480,6 +493,24 @@ namespace GameboyTetris
             tetris = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-22-tetris-4-lines");
             gameOver = Content.Load<SoundEffect>("Audio/SoundEffects/18. Game Over");
             clearedTex = Content.Load<Texture2D>("clearedTex");
+
+            mySpriteEffect = Content.Load<Effect>("Effects/ChangePalette");
+            gridTex = Content.Load<Texture2D>("grid_pattern");
+            Color[] colourData = new Color[gridTex.Width * gridTex.Height];
+            gridTex.GetData<Color>(colourData);
+            for (int x = 0; x < gridTex.Width; x++)
+            {
+                for (int y = 0; y < gridTex.Height; y++)
+                {
+                    int partIndex = x + y * gridTex.Width;
+                    if (colourData[partIndex] == Color.Black)
+                    {
+                        colourData[partIndex] = Color.Transparent;
+                    }
+                }
+            }
+            gridTex.SetData<Color>(colourData);
+            //mySpriteEffect.Parameters["gridTexture"].SetValue(gridTex);
             //font.            // TODO: use this.Content to load your game content here
         }
 
@@ -622,7 +653,7 @@ namespace GameboyTetris
                 gs = GameState.startscreen;
                 SetMusic();
                 //background.SetTex(titleScreen);
-                background = screens.Find(o => o.name == "title");
+                currentScreen = screens.Find(o => o.name == "title");
                 stopwatch.Restart();
             }
             if (gs == GameState.startscreen)
@@ -656,13 +687,13 @@ namespace GameboyTetris
                         /*selectedLeft = true;
                         cursor.position.X = 11;*/
                         gs = GameState.settings;
-                        background = screens.Find(o => o.name == "settings");
+                        currentScreen = screens.Find(o => o.name == "settings");
                         SetMusic();
                     }
                     else
                     {
                         gs = GameState.playing;
-                        background = screens.Find(o => o.name == "playing");
+                        currentScreen = screens.Find(o => o.name == "playing");
                         SetMusic();
                     }
                 }
@@ -742,7 +773,7 @@ namespace GameboyTetris
                 if (Input.GetButtonDown(Keys.Space) || Input.GetButtonDown(Keys.Back) || Input.GetButtonDown(Keys.Z) || Input.GetButtonDown(Keys.X) || Input.GetButtonDown(Keys.C) || Input.GetButtonDown(Keys.Enter) || Input.GetButtonDown(Keys.LeftShift))
                 {
                     gs = GameState.startscreen;
-                    background = screens.Find(o => o.name == "title");
+                    currentScreen = screens.Find(o => o.name == "title");
                     SetMusic();
                     nextOrCarry.text = carryOn ? "H" : "N";
                     Settings settings = new Settings(showGhost, modernControls, carryOn, soundOn, musicOn, lockDelay);
@@ -799,7 +830,7 @@ namespace GameboyTetris
                     else
                     {
                         gs = GameState.startscreen;
-                        background = screens.Find(o => o.name == "title");
+                        currentScreen = screens.Find(o => o.name == "title");
                         score = 0;
                         SetMusic();
                     }
@@ -818,7 +849,7 @@ namespace GameboyTetris
                         screens.Find(o => o.name == "highScore").textOnScreen.Add(writeNameText);
                     }
                     gs = GameState.highScore;
-                    background = screens.Find(o => o.name == "highScore");
+                    currentScreen = screens.Find(o => o.name == "highScore");
                     //else
                     //{
                     //    gs = GameState.startscreen;
@@ -913,7 +944,7 @@ namespace GameboyTetris
                                 screens.Find(o => o.name == "playing").spritesInScreen.Remove(ghost.sprites[i]);
                             }
                         }
-                        ghost = new Shape(active, Color.White * 0.4f);
+                        ghost = new Shape(active, new Color(255, 255, 255, 102));
                         while (ghost.active)
                         {
                             ghost.Update(shapes.FindAll(o => o.id != active.id));
@@ -964,11 +995,14 @@ namespace GameboyTetris
                         screens.Find(o => o.name == "playing").spritesInScreen.Clear();
                         gs = GameState.gameover;
                         shapes.Clear();
-                        background = screens.Find(o => o.name == "gameOver");
+                        currentScreen = screens.Find(o => o.name == "gameOver");
                         SetMusic();
                         ShapeActive = false;
                         carry = null;
-                        gameOver.Play();
+                        if (soundOn)
+                        {
+                            gameOver.Play();
+                        }
                         timeSinceUpdate = 0;
                     }
                 }
@@ -1382,12 +1416,13 @@ namespace GameboyTetris
             GraphicsDevice.SetRenderTarget(gameboy.renderTarget);
             //Color color = new Color(48, 104, 80);
             Color color = new Color(224, 248, 207);
-            GraphicsDevice.Clear(color);
 
             //_spriteBatch.Draw();
-            _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+            //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+            _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, mySpriteEffect, null);
+            GraphicsDevice.Clear(color);
 
-            background.Draw(_spriteBatch, gs != GameState.paused);
+            currentScreen.Draw(_spriteBatch, gs != GameState.paused);
             if (debug && gs == GameState.playing)
             {
                 int size = 4;
@@ -1420,6 +1455,7 @@ namespace GameboyTetris
             // TODO: Add your drawing code here
             float transitionTime = 0.5f;
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+            //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, mySpriteEffect, null);
             if (gs == GameState.logo && stopwatch.Elapsed.TotalSeconds - timeForLogo > -transitionTime)
             {
                 gameboy.Draw(_spriteBatch, ((float)stopwatch.Elapsed.TotalSeconds - timeForLogo) * 1 / transitionTime + 1);
@@ -1431,6 +1467,17 @@ namespace GameboyTetris
             else
             {
                 gameboy.Draw(_spriteBatch);
+            }
+            _spriteBatch.End();
+            _spriteBatch.Begin();
+            Rectangle rect = new Rectangle(0, 0, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
+            for (int x = gameboy.screenSize.X; x < gameboy.screenSize.Width + gameboy.screenSize.X; x += rect.Width)
+            {
+                for (int y = gameboy.screenSize.Y; y < gameboy.screenSize.Height + gameboy.screenSize.Y; y += rect.Height)
+                {
+                    rect = new Rectangle(x, y, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
+                    _spriteBatch.Draw(gridTex, rect, palette[0] * 0.4f);
+                }
             }
             _spriteBatch.End();
             base.Draw(gameTime);
@@ -1581,7 +1628,7 @@ namespace GameboyTetris
 
     internal class MapScreen
     {
-        public Texture2D texture { private set; get; }
+        public Texture2D background { private set; get; }
 
         //public Rectangle rectangle { private set; get; }
         public List<Sprite> spritesInScreen = new List<Sprite>();
@@ -1593,19 +1640,19 @@ namespace GameboyTetris
 
         public MapScreen(Texture2D _texture, string _name)
         {
-            texture = _texture;
+            background = _texture;
             name = _name;
             //rectangle = _rectangle;
         }
 
         public void SetTex(Texture2D _texture)
         {
-            texture = _texture;
+            background = _texture;
         }
 
         public void Draw(SpriteBatch _spriteBatch, bool drawSprites)
         {
-            _spriteBatch.Draw(texture, new Vector2(), Color.White);
+            _spriteBatch.Draw(background, Vector2.Zero, Color.White);
             if (drawSprites)
             {
                 for (int i = 0; i < spritesInScreen.Count; i++)
