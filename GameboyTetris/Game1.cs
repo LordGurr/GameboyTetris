@@ -97,6 +97,7 @@ namespace GameboyTetris
         private SpriteText linesClearedText;
         private SpriteText scoreText;
         private SpriteText pausedText;
+        private SpriteText levelText;
 
         private List<int> upComingShapes;
 
@@ -110,6 +111,31 @@ namespace GameboyTetris
             100,
             300,
             1200,
+        };
+
+        private int[] levelSpeed = new int[21]
+        {
+            53, //0
+            49, //1
+            45, //2
+            41, //3
+            37, //4
+            33, //5
+            28, //6
+            22, //7
+            17, //8
+            11, //9
+            10, //10
+            9,  //11
+            8,  //12
+            7,  //13
+            6,  //14
+            6,  //15
+            5,  //16
+            5,  //17
+            4,  //18
+            4,  //19
+            3,  //20
         };
 
         private int score = 0;
@@ -391,6 +417,8 @@ namespace GameboyTetris
             map = screens.Find(o => o.name == "playing");
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(133, 11), SpriteText.DrawMode.Middle, font, "Score"));
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(131, 52), SpriteText.DrawMode.Middle, font, "Level"));
+            levelText = new SpriteText(pixel, new Vector2(133, 53), SpriteText.DrawMode.Normal, font, "0");
+            map.textOnScreen.Add(levelText);
             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(131, 75), SpriteText.DrawMode.Middle, font, "Lines"));
             linesClearedText = new SpriteText(pixel, new Vector2(133, 77), SpriteText.DrawMode.Normal, font, "0");
             map.textOnScreen.Add(linesClearedText);
@@ -941,13 +969,18 @@ namespace GameboyTetris
                         ShapeActive = false;
                         carry = null;
                         gameOver.Play();
+                        timeSinceUpdate = 0;
                     }
                 }
                 else
                 {
                     float speed = timeforUpdate - ((float)linescleared / 60);
-                    speed = speed < 0.2f ? 0.2f : speed;
-                    if ((timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > timeforUpdate / 10) && (!lockDelay || (lockDelay && !lastMoveFatal)) || (lockDelay && lastMoveFatal && timeSinceUpdate > speed + lockDelayLength))
+                    int level = linescleared / 10;
+                    level = level > levelSpeed.Length - 1 ? levelSpeed.Length - 1 : level;
+                    speed = (float)levelSpeed[level] / 60f;
+                    levelText.text = level.ToString();
+                    //speed = speed < 0.2f ? 0.2f : speed;
+                    if ((timeSinceUpdate > speed || Input.directional.Y > 0 && timeSinceUpdate > 1f / 20f) && (!lockDelay || (lockDelay && !lastMoveFatal)) || (lockDelay && lastMoveFatal && timeSinceUpdate > speed + lockDelayLength))
                     {
                         if (Input.directional.Y > 0)
                         {
@@ -983,7 +1016,7 @@ namespace GameboyTetris
                                     softDropScore = 0;
                                     if (tempLinesCleared > 0)
                                     {
-                                        score += lineScore[tempLinesCleared - 1];
+                                        score += lineScore[tempLinesCleared - 1] * (level + 1);
                                         if (soundOn)
                                         {
                                             if (tempLinesCleared > 3)
@@ -1102,7 +1135,7 @@ namespace GameboyTetris
                             softDropScore = 0;
                             if (tempLinesCleared > 0)
                             {
-                                score += lineScore[tempLinesCleared - 1];
+                                score += lineScore[tempLinesCleared - 1] * (level + 1);
                                 if (soundOn)
                                 {
                                     if (tempLinesCleared > 3)
