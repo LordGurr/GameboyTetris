@@ -109,38 +109,53 @@ namespace GameboyTetris
 
         private Color[][] palette = new Color[][] // Från ljus till mörk
         {
-            new Color[4]
+            new Color[4] //GB studio
             {
                 new Color(224,248,207),
                 new Color(134,192,108),
                 new Color(48, 104, 80),
                 new Color(7, 24, 33),
             },
-            new Color[4]
+            new Color[4] // Ivan Skodje
             {
                 new Color(200,201,67),
                 new Color(125,133,39),
                 new Color(0,106,0),
                 new Color(4,62,0),
             },
-            new Color[4]
+            //new Color[4] // DMG
+            //{
+            //    new Color(123,130,16),
+            //    new Color(90,121,66),
+            //    new Color(57,89,74),
+            //    new Color(41,65,57),
+            //},
+            new Color[4] // Better DMG
             {
-                new Color(123,130,16),
-                new Color(90,121,66),
-                new Color(57,89,74),
-                new Color(41,65,57),
+                new Color(127,134,15),
+                new Color(87,124,68),
+                new Color(54,93,72),
+                new Color(42,69,59),
             },
-            new Color[4]
+            new Color[4] // Pocket
             {
                 new Color(198,203,165),
                 new Color(140,146,107),
                 new Color(74,81,57),
                 new Color(24,24,24),
+            },
+            new Color[4] // Gamebuino
+            {
+                new Color(129,161,126),
+                new Color(98,124,96),
+                new Color(60,75,59),
+                new Color(22,28,22),
             }
         };
 
         private int currentPalette = 2;
         private bool drawGrid = true;
+        private bool drawBorder = true;
 
         private int[] lineScore = new int[4]
         {
@@ -236,8 +251,10 @@ namespace GameboyTetris
         private bool clearedSetToWhite = true;
         private Texture2D clearedTex;
 
-        private Effect mySpriteEffect;
+        private Effect changePalette;
         private Texture2D gridTex;
+
+        private Effect gridEffect;
 
         public Game1()
         {
@@ -521,7 +538,7 @@ namespace GameboyTetris
             gameOver = Content.Load<SoundEffect>("Audio/SoundEffects/18. Game Over");
             clearedTex = Content.Load<Texture2D>("clearedTex");
 
-            mySpriteEffect = Content.Load<Effect>("Effects/ChangePalette");
+            changePalette = Content.Load<Effect>("Effects/ChangePalette");
             gridTex = Content.Load<Texture2D>("grid_pattern");
             Color[] colourData = new Color[gridTex.Width * gridTex.Height];
             gridTex.GetData<Color>(colourData);
@@ -540,8 +557,11 @@ namespace GameboyTetris
 
             for (int i = 0; i < palette[currentPalette].Length; i++)
             {
-                mySpriteEffect.Parameters["color_" + (i + 1)].SetValue(palette[currentPalette][i].ToVector4());
+                changePalette.Parameters["color_" + (i + 1)].SetValue(palette[currentPalette][i].ToVector4());
             }
+
+            gridEffect = Content.Load<Effect>("Effects/GridEffect");
+            gridEffect.Parameters["gridTexture"].SetValue(Content.Load<Texture2D>("grid_patternScreenTrans"));
             //mySpriteEffect.Parameters["gridTexture"].SetValue(gridTex);
             //font.            // TODO: use this.Content to load your game content here
         }
@@ -753,10 +773,10 @@ namespace GameboyTetris
                         {
                             settingCursors[currentSetting - 1].text = "€";
                             settingCursors[currentSetting].text = "§";
-                        }
-                        if (soundOn)
-                        {
-                            movePiece.Play();
+                            if (soundOn)
+                            {
+                                movePiece.Play();
+                            }
                         }
                     }
                     else if (Input.directional.Y < 0)
@@ -771,10 +791,10 @@ namespace GameboyTetris
                         {
                             settingCursors[currentSetting + 1].text = "€";
                             settingCursors[currentSetting].text = "§";
-                        }
-                        if (soundOn)
-                        {
-                            movePiece.Play();
+                            if (soundOn)
+                            {
+                                movePiece.Play();
+                            }
                         }
                     }
                 }
@@ -1451,7 +1471,7 @@ namespace GameboyTetris
 
             //_spriteBatch.Draw();
             //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
-            _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, mySpriteEffect, null);
+            _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, changePalette, null);
             GraphicsDevice.Clear(palette[currentPalette][0]);
 
             currentScreen.Draw(_spriteBatch, gs != GameState.paused);
@@ -1487,7 +1507,16 @@ namespace GameboyTetris
             // TODO: Add your drawing code here
             float transitionTime = 0.5f;
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+            //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, gridEffect, null);
             //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, mySpriteEffect, null);
+            int brightness = (int)(0.05f * 255);
+            Color backGroundColor = new Color(palette[currentPalette][0].R + brightness, palette[currentPalette][0].G + brightness, palette[currentPalette][0].B + brightness);
+            if (drawBorder)
+            {
+                int borderSize = (gameboy.screenSize.Width / screenWidth) * 2;
+                Rectangle rect = new Rectangle(gameboy.screenSize.X - borderSize, gameboy.screenSize.Y - borderSize, gameboy.screenSize.Width + borderSize * 2, gameboy.screenSize.Height + borderSize * 2);
+                _spriteBatch.Draw(pixel, rect, backGroundColor);
+            }
             if (gs == GameState.logo && stopwatch.Elapsed.TotalSeconds - timeForLogo > -transitionTime)
             {
                 gameboy.Draw(_spriteBatch, ((float)stopwatch.Elapsed.TotalSeconds - timeForLogo) * 1 / transitionTime + 1);
@@ -1505,16 +1534,17 @@ namespace GameboyTetris
             {
                 _spriteBatch.Begin();
                 Rectangle rect = new Rectangle(0, 0, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
-                Color temp = palette[currentPalette][0] * 1.2f;
+                Color temp = palette[currentPalette][0] * 0.4f;
                 //temp.A = (byte)(255f * 1f);
-                temp = new Color(temp, 1f);
-                temp = palette[currentPalette][0] * 0.4f;
+                //temp = new Color(269, 298, 248) * 0.4f;
+                //temp = new Color(temp, 0f);
+                //temp = palette[currentPalette][0] * 0.4f;
                 for (int x = gameboy.screenSize.X; x < gameboy.screenSize.Width + gameboy.screenSize.X; x += rect.Width)
                 {
                     for (int y = gameboy.screenSize.Y; y < gameboy.screenSize.Height + gameboy.screenSize.Y; y += rect.Height)
                     {
                         rect = new Rectangle(x, y, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
-                        _spriteBatch.Draw(gridTex, rect, temp);
+                        _spriteBatch.Draw(gridTex, rect, backGroundColor * 0.4f);
                     }
                 }
                 _spriteBatch.End();

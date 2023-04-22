@@ -8,7 +8,6 @@
 #endif
 
 Texture2D SpriteTexture;
-Texture2D gridTexture;
 
 // Colors that we will use
 uniform float4 color_1 = float4(0.784313725, 0.788235294, 0.262745098, 1);
@@ -121,6 +120,8 @@ sampler2D SpriteTextureSampler = sampler_state
     Texture = <SpriteTexture>;
 };
 
+
+
 struct VertexShaderOutput
 {
 	float4 Position : SV_POSITION;
@@ -131,6 +132,7 @@ struct VertexShaderOutput
 float4 MainPS(VertexShaderOutput input) : COLOR
 {
     float4 color = tex2D(SpriteTextureSampler, input.TextureCoordinates) * input.Color;
+
     //float value = (color.r + color.g + color.b)*0.333;
     //color.r = value;
     //color.g = value;
