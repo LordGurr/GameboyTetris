@@ -107,13 +107,40 @@ namespace GameboyTetris
         private SpriteText originText;
         private SpriteText timeSinceUpdateText;
 
-        private Color[] palette = new Color[4] // Från ljus till mörk
+        private Color[][] palette = new Color[][] // Från ljus till mörk
         {
-            new Color(224,248,207),
-            new Color(134,192,108),
-            new Color(48, 104, 80),
-            new Color(7, 24, 33),
+            new Color[4]
+            {
+                new Color(224,248,207),
+                new Color(134,192,108),
+                new Color(48, 104, 80),
+                new Color(7, 24, 33),
+            },
+            new Color[4]
+            {
+                new Color(200,201,67),
+                new Color(125,133,39),
+                new Color(0,106,0),
+                new Color(4,62,0),
+            },
+            new Color[4]
+            {
+                new Color(123,130,16),
+                new Color(90,121,66),
+                new Color(57,89,74),
+                new Color(41,65,57),
+            },
+            new Color[4]
+            {
+                new Color(198,203,165),
+                new Color(140,146,107),
+                new Color(74,81,57),
+                new Color(24,24,24),
+            }
         };
+
+        private int currentPalette = 2;
+        private bool drawGrid = true;
 
         private int[] lineScore = new int[4]
         {
@@ -193,7 +220,7 @@ namespace GameboyTetris
             carryOn,
         };*/
 
-        private Vector2 slotPosition = new Vector2(136, 117);
+        private Vector2 slotPosition = new Vector2(139, 120);
 
         private SpriteText[] settingCursors;
 
@@ -510,6 +537,11 @@ namespace GameboyTetris
                 }
             }
             gridTex.SetData<Color>(colourData);
+
+            for (int i = 0; i < palette[currentPalette].Length; i++)
+            {
+                mySpriteEffect.Parameters["color_" + (i + 1)].SetValue(palette[currentPalette][i].ToVector4());
+            }
             //mySpriteEffect.Parameters["gridTexture"].SetValue(gridTex);
             //font.            // TODO: use this.Content to load your game content here
         }
@@ -1415,18 +1447,18 @@ namespace GameboyTetris
             GraphicsDevice.Clear(Color.Black);
             GraphicsDevice.SetRenderTarget(gameboy.renderTarget);
             //Color color = new Color(48, 104, 80);
-            Color color = new Color(224, 248, 207);
+            //Color color = new Color(224, 248, 207);
 
             //_spriteBatch.Draw();
             //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
             _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, mySpriteEffect, null);
-            GraphicsDevice.Clear(color);
+            GraphicsDevice.Clear(palette[currentPalette][0]);
 
             currentScreen.Draw(_spriteBatch, gs != GameState.paused);
             if (debug && gs == GameState.playing)
             {
                 int size = 4;
-                _spriteBatch.Draw(pixel, active.AccessOrigin, null, Color.White, 0, Vector2.Zero, size, SpriteEffects.None, 0);
+                _spriteBatch.Draw(pixel, active.AccessOrigin - new Vector2(size / 2), null, palette[currentPalette][1], 0, Vector2.Zero, size, SpriteEffects.None, 0);
                 _spriteBatch.Draw(pixel, slotPosition, null, Color.White, 0, Vector2.Zero, size, SpriteEffects.None, 0);
                 originText.text = active.AccessOrigin.ToString();
                 originText.Draw(_spriteBatch);
@@ -1469,17 +1501,24 @@ namespace GameboyTetris
                 gameboy.Draw(_spriteBatch);
             }
             _spriteBatch.End();
-            _spriteBatch.Begin();
-            Rectangle rect = new Rectangle(0, 0, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
-            for (int x = gameboy.screenSize.X; x < gameboy.screenSize.Width + gameboy.screenSize.X; x += rect.Width)
+            if (drawGrid)
             {
-                for (int y = gameboy.screenSize.Y; y < gameboy.screenSize.Height + gameboy.screenSize.Y; y += rect.Height)
+                _spriteBatch.Begin();
+                Rectangle rect = new Rectangle(0, 0, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
+                Color temp = palette[currentPalette][0] * 1.2f;
+                //temp.A = (byte)(255f * 1f);
+                temp = new Color(temp, 1f);
+                temp = palette[currentPalette][0] * 0.4f;
+                for (int x = gameboy.screenSize.X; x < gameboy.screenSize.Width + gameboy.screenSize.X; x += rect.Width)
                 {
-                    rect = new Rectangle(x, y, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
-                    _spriteBatch.Draw(gridTex, rect, palette[0] * 0.4f);
+                    for (int y = gameboy.screenSize.Y; y < gameboy.screenSize.Height + gameboy.screenSize.Y; y += rect.Height)
+                    {
+                        rect = new Rectangle(x, y, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
+                        _spriteBatch.Draw(gridTex, rect, temp);
+                    }
                 }
+                _spriteBatch.End();
             }
-            _spriteBatch.End();
             base.Draw(gameTime);
         }
 
