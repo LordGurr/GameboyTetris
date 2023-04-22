@@ -36,6 +36,20 @@ namespace GameboyTetris
         }
     }
 
+    internal struct ShaderSettings
+    {
+        public int currentPalette;
+        public bool drawGrid;
+        public bool drawBorder;
+
+        public ShaderSettings(int currentPalette, bool drawGrid, bool drawBorder)
+        {
+            this.currentPalette = currentPalette;
+            this.drawGrid = drawGrid;
+            this.drawBorder = drawBorder;
+        }
+    }
+
     internal struct Settings
     {
         public bool showGhost;
@@ -153,9 +167,23 @@ namespace GameboyTetris
             }
         };
 
+        private string[] paletteNames = new string[]
+        {
+            "GB Studio",
+            "Ivan Skodje",
+            "DMG",
+            "Pocket",
+            "Gamebuino",
+        };
+
         private int currentPalette = 2;
         private bool drawGrid = true;
         private bool drawBorder = true;
+
+        private bool paletteMenuActive = false;
+
+        private System.Drawing.Image checkMark;
+        private System.Drawing.Image cross;
 
         private int[] lineScore = new int[4]
         {
@@ -256,6 +284,11 @@ namespace GameboyTetris
 
         private Effect gridEffect;
 
+        private ToolStripButton gridButton;
+        private MenuStrip menuStrip;
+        private ToolStripDropDownButton dropDown;
+        private ToolStripButton borderButton;
+
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -320,6 +353,20 @@ namespace GameboyTetris
             }
         }
 
+        public static System.Drawing.Image Texture2Image(Texture2D texture)
+        {
+            System.Drawing.Image img;
+            using (MemoryStream MS = new MemoryStream())
+            {
+                texture.SaveAsPng(MS, texture.Width, texture.Height);
+                //Go To the  beginning of the stream.
+                MS.Seek(0, SeekOrigin.Begin);
+                //Create the image based on the stream.
+                img = System.Drawing.Bitmap.FromStream(MS);
+            }
+            return img;
+        }
+
         protected override void Initialize()
         {
             // TODO: Add your initialization logic here
@@ -360,15 +407,15 @@ namespace GameboyTetris
             map.textOnScreen.Add(cursor);
             settingCursors = new SpriteText[6];
 
-            if (File.Exists("Settings.txt"))
+            if (File.Exists("Settings.json"))
             {
-                string temp = File.ReadAllText("Settings.txt");
+                string temp = File.ReadAllText("Settings.json");
                 Settings settings = JsonConvert.DeserializeObject<Settings>(temp);
                 SetSettings(settings);
             }
-            if (File.Exists("HighScore.txt"))
+            if (File.Exists("HighScore.json"))
             {
-                string[] temp = File.ReadAllLines("HighScore.txt");
+                string[] temp = File.ReadAllLines("HighScore.json");
                 for (int i = 0; i < temp.Length && i < highScore.Length; i++)
                 {
                     highScore[i] = JsonConvert.DeserializeObject<Score>(temp[i]);
@@ -555,6 +602,16 @@ namespace GameboyTetris
             }
             gridTex.SetData<Color>(colourData);
 
+            if (File.Exists("ShaderSettings.json"))
+            {
+                string temp = File.ReadAllText("ShaderSettings.json");
+                ShaderSettings shaderSettings = JsonConvert.DeserializeObject<ShaderSettings>(temp);
+
+                currentPalette = shaderSettings.currentPalette;
+                drawGrid = shaderSettings.drawGrid;
+                drawBorder = shaderSettings.drawBorder;
+            }
+
             for (int i = 0; i < palette[currentPalette].Length; i++)
             {
                 changePalette.Parameters["color_" + (i + 1)].SetValue(palette[currentPalette][i].ToVector4());
@@ -564,6 +621,9 @@ namespace GameboyTetris
             gridEffect.Parameters["gridTexture"].SetValue(Content.Load<Texture2D>("grid_patternScreenTrans"));
             //mySpriteEffect.Parameters["gridTexture"].SetValue(gridTex);
             //font.            // TODO: use this.Content to load your game content here
+
+            checkMark = Texture2Image(Content.Load<Texture2D>("Check_mark_9x9"));
+            cross = Texture2Image(Content.Load<Texture2D>("High-contrast-dialog-close"));
         }
 
         private void SetMusic()
@@ -695,6 +755,71 @@ namespace GameboyTetris
                 {
                     DecreaseScreenSize();
                 }
+            }
+            if (Input.GetButtonDown(Keys.Home) && !paletteMenuActive)
+            {
+                paletteMenuActive = true;
+                //System.Drawing.Image check = Texture2Image(checkMark);
+                menuStrip = new MenuStrip();
+                ToolStripMenuItem toolStripMenuItem = new ToolStripMenuItem();
+                gridButton = new ToolStripButton();
+                gridButton.Text = "Grid";
+                if (drawGrid)
+                {
+                    gridButton.Image = checkMark;
+                }
+                gridButton.Click += GridButton_Click;
+
+                borderButton = new ToolStripButton();
+                borderButton.Text = "Border";
+                if (drawBorder)
+                {
+                    borderButton.Image = checkMark;
+                }
+                borderButton.Click += BorderButton_Click;
+
+                ToolStripButton closeButton = new ToolStripButton();
+                closeButton.Image = cross;
+                closeButton.Alignment = ToolStripItemAlignment.Right;
+                closeButton.Click += CloseButton_Click;
+                //menuStrip.Items.Add("File");
+                //ToolStripMenuItem FileMenu = new ToolStripMenuItem("File");
+                //FileMenu.BackColor = Color.OrangeRed;
+                //FileMenu.ForeColor = Color.Black;
+                //FileMenu.Text = "File Menu";
+                //FileMenu.Font = newFont("Georgia", 16);
+                //FileMenu.TextAlign = contenta.BottomRight;
+                //FileMenu.ToolTipText = "Click Me";
+                //dropDown1.
+                dropDown = new ToolStripDropDownButton();
+                dropDown.Text = "Palettes";
+                for (int i = 0; i < paletteNames.Length; i++)
+                {
+                    dropDown.DropDownItems.Add(paletteNames[i]);
+                    if (currentPalette == i)
+                    {
+                        dropDown.DropDownItems[^1].Image = checkMark;
+                    }
+                    dropDown.DropDownItems[^1].Click += DropDown_Click;
+                }
+                //dropDown.
+                //dropDown.
+                //ToolStrip toolStrip = new System.Windows.Forms.ToolStrip();
+                menuStrip.Items.Add(dropDown);
+                menuStrip.Items.Add(gridButton);
+                menuStrip.Items.Add(borderButton);
+                menuStrip.Items.Add(closeButton);
+                //menuStrip.Items.Add(trackBar);
+                //FileMenu.DropDown
+                //menuStrip.Items[0].Click += delegate
+                //{
+                //}
+                //;
+                //menuStrip.Items.Add(FileMenu);
+                //menuStrip.Items[0].ToolTipText = "Home";
+                //menuStrip.Dock = DockStyle.Left;
+                f.Controls.Add(menuStrip);
+                //menuStrip.Dispose();
             }
             if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.PrintScreen))
             {
@@ -829,13 +954,13 @@ namespace GameboyTetris
                     SetMusic();
                     nextOrCarry.text = carryOn ? "H" : "N";
                     Settings settings = new Settings(showGhost, modernControls, carryOn, soundOn, musicOn, lockDelay);
-                    if (!File.Exists("Settings.txt"))
+                    if (!File.Exists("Settings.json"))
                     {
-                        FileStream fileStream = File.Create("Settings.txt");
+                        FileStream fileStream = File.Create("Settings.json");
                         fileStream.Close();
                     }
                     string temp = JsonConvert.SerializeObject(settings);
-                    File.WriteAllText("Settings.txt", temp);
+                    File.WriteAllText("Settings.json", temp);
                 }
             }
             if (gs == GameState.highScore)
@@ -867,9 +992,9 @@ namespace GameboyTetris
                         }
                         myInputBox.ClearText();
 
-                        if (!File.Exists("HighScore.txt"))
+                        if (!File.Exists("HighScore.json"))
                         {
-                            FileStream fileStream = File.Create("HighScore.txt");
+                            FileStream fileStream = File.Create("HighScore.json");
                             fileStream.Close();
                         }
                         string save = string.Empty;
@@ -877,7 +1002,7 @@ namespace GameboyTetris
                         {
                             save += JsonConvert.SerializeObject(highScore[i]) + "\n";
                         }
-                        File.WriteAllText("HighScore.txt", save);
+                        File.WriteAllText("HighScore.json", save);
                     }
                     else
                     {
@@ -1373,6 +1498,86 @@ namespace GameboyTetris
             }
             // TODO: Add your update logic here
             base.Update(gameTime);
+        }
+
+        private void BorderButton_Click(object sender, EventArgs e)
+        {
+            drawBorder = !drawBorder;
+            if (drawBorder)
+            {
+                borderButton.Image = checkMark;
+            }
+            else
+            {
+                borderButton.Image = null;
+            }
+            ShaderSettings shaderSettings = new ShaderSettings(currentPalette, drawGrid, drawBorder);
+            if (!File.Exists("ShaderSettings.json"))
+            {
+                FileStream fileStream = File.Create("ShaderSettings.json");
+                fileStream.Close();
+            }
+            string temp = JsonConvert.SerializeObject(shaderSettings);
+            File.WriteAllText("ShaderSettings.json", temp);
+        }
+
+        private void CloseButton_Click(object sender, EventArgs e)
+        {
+            menuStrip.Dispose();
+            paletteMenuActive = false;
+        }
+
+        private void GridButton_Click(object sender, EventArgs e)
+        {
+            drawGrid = !drawGrid;
+            if (drawGrid)
+            {
+                gridButton.Image = checkMark;
+            }
+            else
+            {
+                gridButton.Image = null;
+            }
+            ShaderSettings shaderSettings = new ShaderSettings(currentPalette, drawGrid, drawBorder);
+            if (!File.Exists("ShaderSettings.json"))
+            {
+                FileStream fileStream = File.Create("ShaderSettings.json");
+                fileStream.Close();
+            }
+            string temp = JsonConvert.SerializeObject(shaderSettings);
+            File.WriteAllText("ShaderSettings.json", temp);
+        }
+
+        private void DropDown_Click(object sender, EventArgs e)
+        {
+            int tempPal = Array.IndexOf(paletteNames, sender.ToString());
+            if (tempPal > -1)
+            {
+                currentPalette = tempPal;
+                for (int i = 0; i < palette[currentPalette].Length; i++)
+                {
+                    changePalette.Parameters["color_" + (i + 1)].SetValue(palette[currentPalette][i].ToVector4());
+                }
+                for (int i = 0; i < paletteNames.Length; i++)
+                {
+                    if (currentPalette == i)
+                    {
+                        dropDown.DropDownItems[i].Image = checkMark;
+                    }
+                    else
+                    {
+                        dropDown.DropDownItems[i].Image = null;
+                    }
+                }
+                ShaderSettings shaderSettings = new ShaderSettings(currentPalette, drawGrid, drawBorder);
+                if (!File.Exists("ShaderSettings.json"))
+                {
+                    FileStream fileStream = File.Create("ShaderSettings.json");
+                    fileStream.Close();
+                }
+                string temp = JsonConvert.SerializeObject(shaderSettings);
+                File.WriteAllText("ShaderSettings.json", temp);
+            }
         }
 
         private int CheckForLine()

@@ -91,6 +91,18 @@
 /processorParam:Quality=Best
 /build:Audio/SoundEffects/tetris-gb-27-piece-landed.wav
 
+#begin Check_mark_9x9.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:Check_mark_9x9.png
+
 #begin clearedTex.png
 /importer:TextureImporter
 /processor:TextureProcessor
@@ -145,6 +157,18 @@
 /processorParam:MakeSquare=False
 /processorParam:TextureFormat=Color
 /build:grid_patternScreenTrans.png
+
+#begin High-contrast-dialog-close.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:ColorKeyColor=255,0,255,255
+/processorParam:ColorKeyEnabled=True
+/processorParam:GenerateMipmaps=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:MakeSquare=False
+/processorParam:TextureFormat=Color
+/build:High-contrast-dialog-close.png
 
 #begin linktransdown0.png
 /importer:TextureImporter
