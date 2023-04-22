@@ -1675,8 +1675,14 @@ namespace GameboyTetris
             //Color color = new Color(224, 248, 207);
 
             //_spriteBatch.Draw();
-            //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
-            _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, changePalette, null);
+            if (currentPalette != 0)
+            {
+                _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, changePalette, null);
+            }
+            else
+            {
+                _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+            }
             GraphicsDevice.Clear(palette[currentPalette][0]);
 
             currentScreen.Draw(_spriteBatch, gs != GameState.paused);
