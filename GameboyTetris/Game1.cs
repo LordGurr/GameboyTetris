@@ -301,6 +301,8 @@ namespace GameboyTetris
         private Texture2D backgroundTexture;
         private Texture2D overlayTexture;
 
+        private string directoryPath = string.Empty;
+
         public Game1()
         {
             _graphics = new GraphicsDeviceManager(this);
@@ -393,6 +395,11 @@ namespace GameboyTetris
 
         protected override void LoadContent()
         {
+            directoryPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData) + "\\GameboyTetris\\";
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
             _spriteBatch = new SpriteBatch(GraphicsDevice);
             titleScreen = Content.Load<Texture2D>("tetrisTitleScreenCropCol");
             logo = Content.Load<Texture2D>("Logo");
@@ -420,15 +427,15 @@ namespace GameboyTetris
             map.textOnScreen.Add(cursor);
             settingCursors = new SpriteText[6];
 
-            if (File.Exists("Settings.json"))
+            if (File.Exists(directoryPath + "Settings.json"))
             {
-                string temp = File.ReadAllText("Settings.json");
+                string temp = File.ReadAllText(directoryPath + "Settings.json");
                 Settings settings = JsonConvert.DeserializeObject<Settings>(temp);
                 SetSettings(settings);
             }
-            if (File.Exists("HighScore.json"))
+            if (File.Exists(directoryPath + "HighScore.json"))
             {
-                string[] temp = File.ReadAllLines("HighScore.json");
+                string[] temp = File.ReadAllLines(directoryPath + "HighScore.json");
                 for (int i = 0; i < temp.Length && i < highScore.Length; i++)
                 {
                     highScore[i] = JsonConvert.DeserializeObject<Score>(temp[i]);
@@ -623,9 +630,9 @@ namespace GameboyTetris
             }
             gridTex.SetData<Color>(colourData);
 
-            if (File.Exists("ShaderSettings.json"))
+            if (File.Exists(directoryPath + "ShaderSettings.json"))
             {
-                string temp = File.ReadAllText("ShaderSettings.json");
+                string temp = File.ReadAllText(directoryPath + "ShaderSettings.json");
                 ShaderSettings shaderSettings = JsonConvert.DeserializeObject<ShaderSettings>(temp);
 
                 currentPalette = shaderSettings.currentPalette;
@@ -991,13 +998,13 @@ namespace GameboyTetris
                     SetMusic();
                     nextOrCarry.text = carryOn ? "H" : "N";
                     Settings settings = new Settings(showGhost, modernControls, carryOn, soundOn, musicOn, lockDelay);
-                    if (!File.Exists("Settings.json"))
+                    if (!File.Exists(directoryPath + "Settings.json"))
                     {
                         FileStream fileStream = File.Create("Settings.json");
                         fileStream.Close();
                     }
                     string temp = JsonConvert.SerializeObject(settings);
-                    File.WriteAllText("Settings.json", temp);
+                    File.WriteAllText(directoryPath + "Settings.json", temp);
                 }
             }
             if (gs == GameState.highScore)
@@ -1041,9 +1048,9 @@ namespace GameboyTetris
                         }
                         myInputBox.ClearText();
 
-                        if (!File.Exists("HighScore.json"))
+                        if (!File.Exists(directoryPath + "HighScore.json"))
                         {
-                            FileStream fileStream = File.Create("HighScore.json");
+                            FileStream fileStream = File.Create(directoryPath + "HighScore.json");
                             fileStream.Close();
                         }
                         string save = string.Empty;
@@ -1051,7 +1058,7 @@ namespace GameboyTetris
                         {
                             save += JsonConvert.SerializeObject(highScore[i]) + "\n";
                         }
-                        File.WriteAllText("HighScore.json", save);
+                        File.WriteAllText(directoryPath + "HighScore.json", save);
                     }
                     else
                     {
@@ -1552,13 +1559,13 @@ namespace GameboyTetris
         private void SaveShaderSettings()
         {
             ShaderSettings shaderSettings = new ShaderSettings(currentPalette, drawGrid, drawBorder, drawBackground, drawOvelay);
-            if (!File.Exists("ShaderSettings.json"))
+            if (!File.Exists(directoryPath + "ShaderSettings.json"))
             {
-                FileStream fileStream = File.Create("ShaderSettings.json");
+                FileStream fileStream = File.Create(directoryPath + "ShaderSettings.json");
                 fileStream.Close();
             }
             string temp = JsonConvert.SerializeObject(shaderSettings);
-            File.WriteAllText("ShaderSettings.json", temp);
+            File.WriteAllText(directoryPath + "ShaderSettings.json", temp);
         }
 
         private void DMGOverlayButton_Click(object sender, EventArgs e)
