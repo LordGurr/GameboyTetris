@@ -293,7 +293,8 @@ namespace GameboyTetris
 
         private ToolStripButton gridButton;
         private MenuStrip menuStrip;
-        private ToolStripDropDownButton dropDown;
+        private ToolStripDropDownButton dropDownPalette;
+        private ToolStripDropDownButton dropDownScale;
         private ToolStripButton borderButton;
         private ToolStripButton backgroundButton;
         private ToolStripButton dmgOverlayButton;
@@ -343,6 +344,7 @@ namespace GameboyTetris
 
         private void SwitchFullscreen()
         {
+            menuStrip.Dispose();
             var f = (Form)Control.FromHandle(Window.Handle);
             Screen screen = Screen.FromControl(f);
             _graphics.HardwareModeSwitch = false;
@@ -366,6 +368,7 @@ namespace GameboyTetris
             {
                 CenterScreen(screen);
             }
+            AddMenuStrip();
         }
 
         public static System.Drawing.Image Texture2Image(Texture2D texture)
@@ -766,6 +769,84 @@ namespace GameboyTetris
             lockDelay = settings.lockDelay;
         }
 
+        private void AddMenuStrip()
+        {
+            var f = (Form)Control.FromHandle(Window.Handle);
+            paletteMenuActive = true;
+            menuStrip = new MenuStrip();
+            ToolStripMenuItem toolStripMenuItem = new ToolStripMenuItem();
+            gridButton = new ToolStripButton();
+            gridButton.Text = "Grid";
+            if (drawGrid)
+            {
+                gridButton.Image = checkMark;
+            }
+            gridButton.Click += GridButton_Click;
+
+            borderButton = new ToolStripButton();
+            borderButton.Text = "Border";
+            if (drawBorder)
+            {
+                borderButton.Image = checkMark;
+            }
+            borderButton.Click += BorderButton_Click;
+
+            backgroundButton = new ToolStripButton();
+            backgroundButton.Text = "Background";
+            if (drawBackground)
+            {
+                backgroundButton.Image = checkMark;
+            }
+            backgroundButton.Click += BackgroundButton_Click;
+
+            dmgOverlayButton = new ToolStripButton();
+            dmgOverlayButton.Text = "DMG Overlay";
+            if (drawOvelay)
+            {
+                dmgOverlayButton.Image = checkMark;
+            }
+            dmgOverlayButton.Click += DMGOverlayButton_Click;
+
+            ToolStripButton closeButton = new ToolStripButton();
+            closeButton.Image = cross;
+            closeButton.Alignment = ToolStripItemAlignment.Right;
+            closeButton.Click += CloseButton_Click;
+            dropDownPalette = new ToolStripDropDownButton();
+            dropDownPalette.Text = "Palettes";
+            for (int i = 0; i < paletteNames.Length; i++)
+            {
+                dropDownPalette.DropDownItems.Add(paletteNames[i]);
+                if (currentPalette == i)
+                {
+                    dropDownPalette.DropDownItems[^1].Image = checkMark;
+                }
+                dropDownPalette.DropDownItems[^1].Click += DropDown_Click;
+            }
+
+            dropDownScale = new ToolStripDropDownButton();
+            dropDownScale.Text = "Scale";
+            //dropDownScale.Alignment = ToolStripItemAlignment.Right;
+            int scale = MaxHeight() / screenHeight;
+            for (int i = 1; i < scale + 2; i++)
+            {
+                dropDownScale.DropDownItems.Add(i.ToString() + "x");
+                if (gameboy.screenSize.Width / screenWidth == i)
+                {
+                    dropDownScale.DropDownItems[^1].Image = checkMark;
+                }
+                dropDownScale.DropDownItems[^1].Click += DropDown_Click;
+            }
+            menuStrip.Items.Add(dropDownScale);
+            menuStrip.Items.Add(dropDownPalette);
+            menuStrip.Items.Add(gridButton);
+            menuStrip.Items.Add(borderButton);
+            menuStrip.Items.Add(backgroundButton);
+            menuStrip.Items.Add(dmgOverlayButton);
+
+            menuStrip.Items.Add(closeButton);
+            f.Controls.Add(menuStrip);
+        }
+
         protected override void Update(GameTime gameTime)
         {
             Input.GetState();
@@ -774,6 +855,7 @@ namespace GameboyTetris
             if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.F11))
             {
                 SwitchFullscreen();
+                UpdateScale();
             }
             var f = (Form)Control.FromHandle(Window.Handle);
             if (f.WindowState != FormWindowState.Maximized)
@@ -781,74 +863,19 @@ namespace GameboyTetris
                 if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.PageUp))
                 {
                     IncreaseScreenSize();
+                    UpdateScale();
                 }
                 if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.PageDown))
                 {
                     DecreaseScreenSize();
+                    UpdateScale();
                 }
             }
             if (Input.GetButtonDown(Keys.Home))
             {
                 if (!paletteMenuActive)
                 {
-                    paletteMenuActive = true;
-                    menuStrip = new MenuStrip();
-                    ToolStripMenuItem toolStripMenuItem = new ToolStripMenuItem();
-                    gridButton = new ToolStripButton();
-                    gridButton.Text = "Grid";
-                    if (drawGrid)
-                    {
-                        gridButton.Image = checkMark;
-                    }
-                    gridButton.Click += GridButton_Click;
-
-                    borderButton = new ToolStripButton();
-                    borderButton.Text = "Border";
-                    if (drawBorder)
-                    {
-                        borderButton.Image = checkMark;
-                    }
-                    borderButton.Click += BorderButton_Click;
-
-                    backgroundButton = new ToolStripButton();
-                    backgroundButton.Text = "Background";
-                    if (drawBackground)
-                    {
-                        backgroundButton.Image = checkMark;
-                    }
-                    backgroundButton.Click += BackgroundButton_Click;
-
-                    dmgOverlayButton = new ToolStripButton();
-                    dmgOverlayButton.Text = "DMG Overlay";
-                    if (drawOvelay)
-                    {
-                        dmgOverlayButton.Image = checkMark;
-                    }
-                    dmgOverlayButton.Click += DMGOverlayButton_Click;
-
-                    ToolStripButton closeButton = new ToolStripButton();
-                    closeButton.Image = cross;
-                    closeButton.Alignment = ToolStripItemAlignment.Right;
-                    closeButton.Click += CloseButton_Click;
-                    dropDown = new ToolStripDropDownButton();
-                    dropDown.Text = "Palettes";
-                    for (int i = 0; i < paletteNames.Length; i++)
-                    {
-                        dropDown.DropDownItems.Add(paletteNames[i]);
-                        if (currentPalette == i)
-                        {
-                            dropDown.DropDownItems[^1].Image = checkMark;
-                        }
-                        dropDown.DropDownItems[^1].Click += DropDown_Click;
-                    }
-                    menuStrip.Items.Add(dropDown);
-                    menuStrip.Items.Add(gridButton);
-                    menuStrip.Items.Add(borderButton);
-                    menuStrip.Items.Add(backgroundButton);
-                    menuStrip.Items.Add(dmgOverlayButton);
-
-                    menuStrip.Items.Add(closeButton);
-                    f.Controls.Add(menuStrip);
+                    AddMenuStrip();
                 }
                 else
                 {
@@ -1000,7 +1027,7 @@ namespace GameboyTetris
                     Settings settings = new Settings(showGhost, modernControls, carryOn, soundOn, musicOn, lockDelay);
                     if (!File.Exists(directoryPath + "Settings.json"))
                     {
-                        FileStream fileStream = File.Create("Settings.json");
+                        FileStream fileStream = File.Create(directoryPath + "Settings.json");
                         fileStream.Close();
                     }
                     string temp = JsonConvert.SerializeObject(settings);
@@ -1645,14 +1672,51 @@ namespace GameboyTetris
                 {
                     if (currentPalette == i)
                     {
-                        dropDown.DropDownItems[i].Image = checkMark;
+                        dropDownPalette.DropDownItems[i].Image = checkMark;
                     }
                     else
                     {
-                        dropDown.DropDownItems[i].Image = null;
+                        dropDownPalette.DropDownItems[i].Image = null;
                     }
                 }
                 SaveShaderSettings();
+            }
+            else if (int.TryParse(sender.ToString()[0].ToString(), out _))
+            {
+                tempPal = Convert.ToInt32(sender.ToString()[0].ToString());
+                var f = (Form)Control.FromHandle(Window.Handle);
+                if (_graphics.IsFullScreen)
+                {
+                    SwitchFullscreen();
+                }
+                else if (f.WindowState == FormWindowState.Maximized)
+                {
+                    f.WindowState = FormWindowState.Normal;
+                }
+                SetScreenSize(tempPal);
+                UpdateScale();
+            }
+        }
+
+        private void UpdateScale()
+        {
+            if (paletteMenuActive)
+            {
+                dropDownScale.DropDownItems.Clear();
+                int scale = MaxHeight() / screenHeight;
+                for (int i = 1; i < scale + 2; i++)
+                {
+                    dropDownScale.DropDownItems.Add(i.ToString() + "x");
+                    if (Math.Min(gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight) == i)
+                    {
+                        dropDownScale.DropDownItems[^1].Image = checkMark;
+                    }
+                    else
+                    {
+                        dropDownScale.DropDownItems[^1].Image = null;
+                    }
+                    dropDownScale.DropDownItems[^1].Click += DropDown_Click;
+                }
             }
         }
 
@@ -1842,7 +1906,7 @@ namespace GameboyTetris
             if (drawBackground)
             {
                 float transparencyScale = 0.3f;
-                if (drawBorder || (drawOvelay && _graphics.IsFullScreen))
+                if (drawBorder || drawOvelay)
                 {
                     _spriteBatch.Draw(backgroundTexture, borderRect, backGroundColor * transparencyScale);
                 }
@@ -1851,7 +1915,7 @@ namespace GameboyTetris
                     _spriteBatch.Draw(backgroundTexture, gameboy.screenSize, backGroundColor * transparencyScale);
                 }
             }
-            if (drawOvelay && _graphics.IsFullScreen)
+            if (drawOvelay)
             {
                 Rectangle rect = new Rectangle(-466, -494, overlayTexture.Width / 4, overlayTexture.Height / 4);
                 float scale = (gameboy.screenSize.Width / screenWidth);// + 0.01f;
@@ -1904,6 +1968,7 @@ namespace GameboyTetris
                 _graphics.ApplyChanges();
             }
             gameboy.screenSize = ScreenSize();
+            UpdateScale();
         }
 
         private void IncreaseScreenSize()
@@ -1913,6 +1978,20 @@ namespace GameboyTetris
             int tempScreenHeight = (screenSize + 1) * screenHeight;
 
             if (tempScreenWidth < GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width && tempScreenHeight < GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height)
+            {
+                _graphics.PreferredBackBufferWidth = tempScreenWidth;
+                _graphics.PreferredBackBufferHeight = tempScreenHeight;
+                gameboy.screenSize = new Rectangle(0, 0, tempScreenWidth, tempScreenHeight);
+                _graphics.ApplyChanges();
+            }
+        }
+
+        private void SetScreenSize(int scale)
+        {
+            int tempScreenWidth = scale * screenWidth;
+            int tempScreenHeight = scale * screenHeight;
+
+            if (tempScreenWidth < GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Width && tempScreenHeight < GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height && tempScreenHeight >= screenHeight && tempScreenWidth >= screenWidth)
             {
                 _graphics.PreferredBackBufferWidth = tempScreenWidth;
                 _graphics.PreferredBackBufferHeight = tempScreenHeight;
