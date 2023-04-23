@@ -12,6 +12,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Mime;
 using System.Windows.Forms;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.Taskbar;
 using Keys = Microsoft.Xna.Framework.Input.Keys;
 
 namespace GameboyTetris
@@ -41,12 +42,16 @@ namespace GameboyTetris
         public int currentPalette;
         public bool drawGrid;
         public bool drawBorder;
+        public bool drawBackground;
+        public bool drawOvelay;
 
-        public ShaderSettings(int currentPalette, bool drawGrid, bool drawBorder)
+        public ShaderSettings(int currentPalette, bool drawGrid, bool drawBorder, bool drawBackground, bool drawOverlay)
         {
             this.currentPalette = currentPalette;
             this.drawGrid = drawGrid;
             this.drawBorder = drawBorder;
+            this.drawBackground = drawBackground;
+            this.drawOvelay = drawOverlay;
         }
     }
 
@@ -178,7 +183,9 @@ namespace GameboyTetris
 
         private int currentPalette = 2;
         private bool drawGrid = true;
-        private bool drawBorder = true;
+        private bool drawBorder = false;
+        private bool drawBackground = false;
+        private bool drawOvelay = false;
 
         private bool paletteMenuActive = false;
 
@@ -288,6 +295,11 @@ namespace GameboyTetris
         private MenuStrip menuStrip;
         private ToolStripDropDownButton dropDown;
         private ToolStripButton borderButton;
+        private ToolStripButton backgroundButton;
+        private ToolStripButton dmgOverlayButton;
+
+        private Texture2D backgroundTexture;
+        private Texture2D overlayTexture;
 
         public Game1()
         {
@@ -325,6 +337,7 @@ namespace GameboyTetris
         }
 
         private bool previouslyMaximized = false;
+        private bool logoSoundPlayed;
 
         private void SwitchFullscreen()
         {
@@ -511,8 +524,20 @@ namespace GameboyTetris
             {
                 string temp = (i + 1) + ". " + (highScore[i].name != string.Empty ? highScore[i].name : "...");
                 map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 25 * i), SpriteText.DrawMode.Normal, font, temp));
-                temp = highScore[i].score != 0 ? highScore[i].score.ToString() : "----";
-                map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 10 + 25 * i), SpriteText.DrawMode.Normal, font, temp));
+                string Numbertemp = highScore[i].score != 0 ? highScore[i].score.ToString() : "----";
+                string realNumberTemp = string.Empty;
+                if (Numbertemp[0] != '-')
+                {
+                    for (int j = Numbertemp.Length - 1; j > -1; j--)
+                    {
+                        realNumberTemp = Numbertemp[j] + ((j + 1) % 3 == 0 ? " " : string.Empty) + realNumberTemp;
+                    }
+                }
+                else
+                {
+                    realNumberTemp = Numbertemp;
+                }
+                map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 10 + 25 * i), SpriteText.DrawMode.Normal, font, realNumberTemp));
             }
 
             Texture2D texture = Content.Load<Texture2D>("tetrisPlayingTextlessCol");
@@ -572,10 +597,6 @@ namespace GameboyTetris
             //mySong[4] = Content.Load<Song>("Audio/Music/18. Game Over");
 
             logoSound = Content.Load<SoundEffect>("Audio/SoundEffects/nintendo-game-boy-startup");
-            if (soundOn)
-            {
-                logoSound.Play();
-            }
             movePiece = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-18-move-piece");
             rotatePiece = Content.Load<SoundEffect>("Audio/SoundEffects/tetris-gb-19-rotate-piece");
 
@@ -624,6 +645,9 @@ namespace GameboyTetris
 
             checkMark = Texture2Image(Content.Load<Texture2D>("Check_mark_9x9"));
             cross = Texture2Image(Content.Load<Texture2D>("High-contrast-dialog-close"));
+
+            backgroundTexture = Content.Load<Texture2D>("background");
+            overlayTexture = Content.Load<Texture2D>("border_square_4x");
         }
 
         private void SetMusic()
@@ -756,82 +780,95 @@ namespace GameboyTetris
                     DecreaseScreenSize();
                 }
             }
-            if (Input.GetButtonDown(Keys.Home) && !paletteMenuActive)
+            if (Input.GetButtonDown(Keys.Home))
             {
-                paletteMenuActive = true;
-                //System.Drawing.Image check = Texture2Image(checkMark);
-                menuStrip = new MenuStrip();
-                ToolStripMenuItem toolStripMenuItem = new ToolStripMenuItem();
-                gridButton = new ToolStripButton();
-                gridButton.Text = "Grid";
-                if (drawGrid)
+                if (!paletteMenuActive)
                 {
-                    gridButton.Image = checkMark;
-                }
-                gridButton.Click += GridButton_Click;
-
-                borderButton = new ToolStripButton();
-                borderButton.Text = "Border";
-                if (drawBorder)
-                {
-                    borderButton.Image = checkMark;
-                }
-                borderButton.Click += BorderButton_Click;
-
-                ToolStripButton closeButton = new ToolStripButton();
-                closeButton.Image = cross;
-                closeButton.Alignment = ToolStripItemAlignment.Right;
-                closeButton.Click += CloseButton_Click;
-                //menuStrip.Items.Add("File");
-                //ToolStripMenuItem FileMenu = new ToolStripMenuItem("File");
-                //FileMenu.BackColor = Color.OrangeRed;
-                //FileMenu.ForeColor = Color.Black;
-                //FileMenu.Text = "File Menu";
-                //FileMenu.Font = newFont("Georgia", 16);
-                //FileMenu.TextAlign = contenta.BottomRight;
-                //FileMenu.ToolTipText = "Click Me";
-                //dropDown1.
-                dropDown = new ToolStripDropDownButton();
-                dropDown.Text = "Palettes";
-                for (int i = 0; i < paletteNames.Length; i++)
-                {
-                    dropDown.DropDownItems.Add(paletteNames[i]);
-                    if (currentPalette == i)
+                    paletteMenuActive = true;
+                    menuStrip = new MenuStrip();
+                    ToolStripMenuItem toolStripMenuItem = new ToolStripMenuItem();
+                    gridButton = new ToolStripButton();
+                    gridButton.Text = "Grid";
+                    if (drawGrid)
                     {
-                        dropDown.DropDownItems[^1].Image = checkMark;
+                        gridButton.Image = checkMark;
                     }
-                    dropDown.DropDownItems[^1].Click += DropDown_Click;
+                    gridButton.Click += GridButton_Click;
+
+                    borderButton = new ToolStripButton();
+                    borderButton.Text = "Border";
+                    if (drawBorder)
+                    {
+                        borderButton.Image = checkMark;
+                    }
+                    borderButton.Click += BorderButton_Click;
+
+                    backgroundButton = new ToolStripButton();
+                    backgroundButton.Text = "Background";
+                    if (drawBackground)
+                    {
+                        backgroundButton.Image = checkMark;
+                    }
+                    backgroundButton.Click += BackgroundButton_Click;
+
+                    dmgOverlayButton = new ToolStripButton();
+                    dmgOverlayButton.Text = "DMG Overlay";
+                    if (drawOvelay)
+                    {
+                        dmgOverlayButton.Image = checkMark;
+                    }
+                    dmgOverlayButton.Click += DMGOverlayButton_Click;
+
+                    ToolStripButton closeButton = new ToolStripButton();
+                    closeButton.Image = cross;
+                    closeButton.Alignment = ToolStripItemAlignment.Right;
+                    closeButton.Click += CloseButton_Click;
+                    dropDown = new ToolStripDropDownButton();
+                    dropDown.Text = "Palettes";
+                    for (int i = 0; i < paletteNames.Length; i++)
+                    {
+                        dropDown.DropDownItems.Add(paletteNames[i]);
+                        if (currentPalette == i)
+                        {
+                            dropDown.DropDownItems[^1].Image = checkMark;
+                        }
+                        dropDown.DropDownItems[^1].Click += DropDown_Click;
+                    }
+                    menuStrip.Items.Add(dropDown);
+                    menuStrip.Items.Add(gridButton);
+                    menuStrip.Items.Add(borderButton);
+                    menuStrip.Items.Add(backgroundButton);
+                    menuStrip.Items.Add(dmgOverlayButton);
+
+                    menuStrip.Items.Add(closeButton);
+                    f.Controls.Add(menuStrip);
                 }
-                //dropDown.
-                //dropDown.
-                //ToolStrip toolStrip = new System.Windows.Forms.ToolStrip();
-                menuStrip.Items.Add(dropDown);
-                menuStrip.Items.Add(gridButton);
-                menuStrip.Items.Add(borderButton);
-                menuStrip.Items.Add(closeButton);
-                //menuStrip.Items.Add(trackBar);
-                //FileMenu.DropDown
-                //menuStrip.Items[0].Click += delegate
-                //{
-                //}
-                //;
-                //menuStrip.Items.Add(FileMenu);
-                //menuStrip.Items[0].ToolTipText = "Home";
-                //menuStrip.Dock = DockStyle.Left;
-                f.Controls.Add(menuStrip);
-                //menuStrip.Dispose();
+                else
+                {
+                    menuStrip.Dispose();
+                    paletteMenuActive = false;
+                }
             }
             if (Input.GetButtonDown(Microsoft.Xna.Framework.Input.Keys.PrintScreen))
             {
                 debug = !debug;
             }
-            if (gs == GameState.logo && stopwatch.Elapsed.TotalSeconds > timeForLogo)
+            if (gs == GameState.logo)
             {
-                gs = GameState.startscreen;
-                SetMusic();
-                //background.SetTex(titleScreen);
-                currentScreen = screens.Find(o => o.name == "title");
-                stopwatch.Restart();
+                if (soundOn && stopwatch.Elapsed.TotalSeconds > 2f && !logoSoundPlayed)
+                {
+                    logoSound.Play();
+                    logoSoundPlayed = true;
+                }
+
+                if (stopwatch.Elapsed.TotalSeconds > timeForLogo)
+                {
+                    gs = GameState.startscreen;
+                    SetMusic();
+                    //background.SetTex(titleScreen);
+                    currentScreen = screens.Find(o => o.name == "title");
+                    stopwatch.Restart();
+                }
             }
             if (gs == GameState.startscreen)
             {
@@ -987,8 +1024,20 @@ namespace GameboyTetris
                         {
                             string temp = (i + 1) + ". " + (highScore[i].name != string.Empty ? highScore[i].name : "...");
                             map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 25 * i), SpriteText.DrawMode.Normal, font, temp));
-                            temp = highScore[i].score != 0 ? highScore[i].score.ToString() : "----";
-                            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 10 + 25 * i), SpriteText.DrawMode.Normal, font, temp));
+                            string Numbertemp = highScore[i].score != 0 ? highScore[i].score.ToString() : "----";
+                            string realNumberTemp = string.Empty;
+                            if (Numbertemp[0] != '-')
+                            {
+                                for (int j = Numbertemp.Length - 1; j > -1; j--)
+                                {
+                                    realNumberTemp = Numbertemp[j] + ((j + 1) % 3 == 0 ? " " : string.Empty) + realNumberTemp;
+                                }
+                            }
+                            else
+                            {
+                                realNumberTemp = Numbertemp;
+                            }
+                            map.textOnScreen.Add(new SpriteText(pixel, new Vector2(30, start + 10 + 25 * i), SpriteText.DrawMode.Normal, font, realNumberTemp));
                         }
                         myInputBox.ClearText();
 
@@ -1500,6 +1549,47 @@ namespace GameboyTetris
             base.Update(gameTime);
         }
 
+        private void SaveShaderSettings()
+        {
+            ShaderSettings shaderSettings = new ShaderSettings(currentPalette, drawGrid, drawBorder, drawBackground, drawOvelay);
+            if (!File.Exists("ShaderSettings.json"))
+            {
+                FileStream fileStream = File.Create("ShaderSettings.json");
+                fileStream.Close();
+            }
+            string temp = JsonConvert.SerializeObject(shaderSettings);
+            File.WriteAllText("ShaderSettings.json", temp);
+        }
+
+        private void DMGOverlayButton_Click(object sender, EventArgs e)
+        {
+            drawOvelay = !drawOvelay;
+            if (drawOvelay)
+            {
+                dmgOverlayButton.Image = checkMark;
+            }
+            else
+            {
+                dmgOverlayButton.Image = null;
+            }
+            ScreenChange(sender, e);
+            SaveShaderSettings();
+        }
+
+        private void BackgroundButton_Click(object sender, EventArgs e)
+        {
+            drawBackground = !drawBackground;
+            if (drawBackground)
+            {
+                backgroundButton.Image = checkMark;
+            }
+            else
+            {
+                backgroundButton.Image = null;
+            }
+            SaveShaderSettings();
+        }
+
         private void BorderButton_Click(object sender, EventArgs e)
         {
             drawBorder = !drawBorder;
@@ -1511,14 +1601,7 @@ namespace GameboyTetris
             {
                 borderButton.Image = null;
             }
-            ShaderSettings shaderSettings = new ShaderSettings(currentPalette, drawGrid, drawBorder);
-            if (!File.Exists("ShaderSettings.json"))
-            {
-                FileStream fileStream = File.Create("ShaderSettings.json");
-                fileStream.Close();
-            }
-            string temp = JsonConvert.SerializeObject(shaderSettings);
-            File.WriteAllText("ShaderSettings.json", temp);
+            SaveShaderSettings();
         }
 
         private void CloseButton_Click(object sender, EventArgs e)
@@ -1538,14 +1621,7 @@ namespace GameboyTetris
             {
                 gridButton.Image = null;
             }
-            ShaderSettings shaderSettings = new ShaderSettings(currentPalette, drawGrid, drawBorder);
-            if (!File.Exists("ShaderSettings.json"))
-            {
-                FileStream fileStream = File.Create("ShaderSettings.json");
-                fileStream.Close();
-            }
-            string temp = JsonConvert.SerializeObject(shaderSettings);
-            File.WriteAllText("ShaderSettings.json", temp);
+            SaveShaderSettings();
         }
 
         private void DropDown_Click(object sender, EventArgs e)
@@ -1569,14 +1645,7 @@ namespace GameboyTetris
                         dropDown.DropDownItems[i].Image = null;
                     }
                 }
-                ShaderSettings shaderSettings = new ShaderSettings(currentPalette, drawGrid, drawBorder);
-                if (!File.Exists("ShaderSettings.json"))
-                {
-                    FileStream fileStream = File.Create("ShaderSettings.json");
-                    fileStream.Close();
-                }
-                string temp = JsonConvert.SerializeObject(shaderSettings);
-                File.WriteAllText("ShaderSettings.json", temp);
+                SaveShaderSettings();
             }
         }
 
@@ -1716,11 +1785,15 @@ namespace GameboyTetris
             //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, mySpriteEffect, null);
             int brightness = (int)(0.05f * 255);
             Color backGroundColor = new Color(palette[currentPalette][0].R + brightness, palette[currentPalette][0].G + brightness, palette[currentPalette][0].B + brightness);
-            if (drawBorder)
+            int borderSize = (gameboy.screenSize.Width / screenWidth) * 2;
+            if (drawOvelay)
             {
-                int borderSize = (gameboy.screenSize.Width / screenWidth) * 2;
-                Rectangle rect = new Rectangle(gameboy.screenSize.X - borderSize, gameboy.screenSize.Y - borderSize, gameboy.screenSize.Width + borderSize * 2, gameboy.screenSize.Height + borderSize * 2);
-                _spriteBatch.Draw(pixel, rect, backGroundColor);
+                borderSize *= 3;
+            }
+            Rectangle borderRect = new Rectangle(gameboy.screenSize.X - borderSize, gameboy.screenSize.Y - borderSize, gameboy.screenSize.Width + borderSize * 2, gameboy.screenSize.Height + borderSize * 2);
+            if (drawBorder || drawOvelay)
+            {
+                _spriteBatch.Draw(pixel, borderRect, backGroundColor);
             }
             if (gs == GameState.logo && stopwatch.Elapsed.TotalSeconds - timeForLogo > -transitionTime)
             {
@@ -1728,16 +1801,16 @@ namespace GameboyTetris
             }
             else if (gs == GameState.startscreen && stopwatch.Elapsed.TotalSeconds < transitionTime)
             {
-                gameboy.Draw(_spriteBatch, 1 - ((float)stopwatch.Elapsed.TotalSeconds) * 1 / transitionTime);
+                gameboy.Draw(_spriteBatch, 1 - ((float)stopwatch.Elapsed.TotalSeconds * (1 / transitionTime)));
             }
             else
             {
                 gameboy.Draw(_spriteBatch);
             }
             _spriteBatch.End();
+            _spriteBatch.Begin();
             if (drawGrid)
             {
-                _spriteBatch.Begin();
                 Rectangle rect = new Rectangle(0, 0, gameboy.screenSize.Width / screenWidth, gameboy.screenSize.Height / screenHeight);
                 Color temp = palette[currentPalette][0] * 0.4f;
                 //temp.A = (byte)(255f * 1f);
@@ -1752,9 +1825,45 @@ namespace GameboyTetris
                         _spriteBatch.Draw(gridTex, rect, backGroundColor * 0.4f);
                     }
                 }
-                _spriteBatch.End();
             }
+            if (drawBackground)
+            {
+                float transparencyScale = 0.3f;
+                if (drawBorder || (drawOvelay && _graphics.IsFullScreen))
+                {
+                    _spriteBatch.Draw(backgroundTexture, borderRect, backGroundColor * transparencyScale);
+                }
+                else
+                {
+                    _spriteBatch.Draw(backgroundTexture, gameboy.screenSize, backGroundColor * transparencyScale);
+                }
+            }
+            if (drawOvelay && _graphics.IsFullScreen)
+            {
+                Rectangle rect = new Rectangle(-466, -494, overlayTexture.Width / 4, overlayTexture.Height / 4);
+                float scale = (gameboy.screenSize.Width / screenWidth);// + 0.01f;
+                rect = SetCenter(gameboy.screenSize.Center, rect);
+                rect = SetScale(scale, rect);
+                _spriteBatch.Draw(overlayTexture, rect, Color.White);
+            }
+            _spriteBatch.End();
             base.Draw(gameTime);
+        }
+
+        private Rectangle SetCenter(Point center, Rectangle rectangle)
+        {
+            rectangle.X = center.X - rectangle.Width / 2;
+            rectangle.Y = center.Y - rectangle.Height / 2;
+            return rectangle;
+        }
+
+        private Rectangle SetScale(float scale, Rectangle rectangle)
+        {
+            rectangle.X = (int)(rectangle.X + (rectangle.Width - rectangle.Width * scale) / 2);
+            rectangle.Y = (int)(rectangle.Y + (rectangle.Height - rectangle.Height * scale) / 2);
+
+            rectangle = new Rectangle(rectangle.X, rectangle.Y, (int)(rectangle.Width * scale), (int)(rectangle.Height * scale));
+            return rectangle;
         }
 
         private void ScreenChange(object sender, EventArgs e)
@@ -1818,11 +1927,11 @@ namespace GameboyTetris
         {
             Rectangle rectangle;
             int height = GetNearestMultiple(Window.ClientBounds.Height, screenHeight);
-            if (height > Window.ClientBounds.Height && height > screenHeight)
+            while (height > Window.ClientBounds.Height && height > screenHeight || (drawOvelay && _graphics.IsFullScreen && height / screenHeight > 4))
             {
                 height -= screenHeight;
             }
-            else if (height < screenHeight)
+            if (height < screenHeight)
             {
                 height = screenHeight;
             }
@@ -1842,6 +1951,7 @@ namespace GameboyTetris
                 ratio = width / screenWidth;
                 height = ratio * screenHeight;
             }
+
             return new Rectangle(Window.ClientBounds.Width / 2 - width / 2, Window.ClientBounds.Height / 2 - height / 2, width, height);
         }
 
