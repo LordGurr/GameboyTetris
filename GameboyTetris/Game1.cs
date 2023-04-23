@@ -344,7 +344,10 @@ namespace GameboyTetris
 
         private void SwitchFullscreen()
         {
-            menuStrip.Dispose();
+            if (paletteMenuActive)
+            {
+                menuStrip.Dispose();
+            }
             var f = (Form)Control.FromHandle(Window.Handle);
             Screen screen = Screen.FromControl(f);
             _graphics.HardwareModeSwitch = false;
@@ -368,7 +371,10 @@ namespace GameboyTetris
             {
                 CenterScreen(screen);
             }
-            AddMenuStrip();
+            if (paletteMenuActive)
+            {
+                AddMenuStrip();
+            }
         }
 
         public static System.Drawing.Image Texture2Image(Texture2D texture)
