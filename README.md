@@ -25,6 +25,6 @@ Choose wether you want to play with standard controls or controls more similar t
 
 ![tetrisDMGEverything](https://user-images.githubusercontent.com/50996232/233837051-367c8b67-8768-4ed4-9dcb-fe8c88a700f8.png)
 
-Turn on the DMG overlay and a background to mimic the originals color bleed and it creates a quite realistic effect!
+Turning on the DMG overlay and will create an experience similar to the original!
 
 Credits: Gameboy shader and palette swapper made from Ivan Skodje's excellent [tutorial](https://ivanskodje.com/gameboy-shaders/). Graphics for the gameboy screen overlay from Harlequin's [shader](https://github.com/HarlequinVG/shaders/tree/master/gameboy_shader) and Themaisters [DMG border](https://github.com/Themaister/slang-shaders/tree/master/handheld/console-border/resources).
