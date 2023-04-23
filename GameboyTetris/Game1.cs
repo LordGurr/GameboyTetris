@@ -289,7 +289,7 @@ namespace GameboyTetris
         private Effect changePalette;
         private Texture2D gridTex;
 
-        private Effect gridEffect;
+        //private Effect gridEffect;
 
         private ToolStripButton gridButton;
         private MenuStrip menuStrip;
@@ -638,8 +638,8 @@ namespace GameboyTetris
                 changePalette.Parameters["color_" + (i + 1)].SetValue(palette[currentPalette][i].ToVector4());
             }
 
-            gridEffect = Content.Load<Effect>("Effects/GridEffect");
-            gridEffect.Parameters["gridTexture"].SetValue(Content.Load<Texture2D>("grid_patternScreenTrans"));
+            //gridEffect = Content.Load<Effect>("Effects/GridEffect");
+            //gridEffect.Parameters["gridTexture"].SetValue(Content.Load<Texture2D>("grid_patternScreenTrans"));
             //mySpriteEffect.Parameters["gridTexture"].SetValue(gridTex);
             //font.            // TODO: use this.Content to load your game content here
 
@@ -1170,7 +1170,7 @@ namespace GameboyTetris
                                 screens.Find(o => o.name == "playing").spritesInScreen.Remove(ghost.sprites[i]);
                             }
                         }
-                        ghost = new Shape(active, new Color(255, 255, 255, 102));
+                        ghost = new Shape(active, new Color(255, 255, 255, 204));
                         while (ghost.active)
                         {
                             ghost.Update(shapes.FindAll(o => o.id != active.id));
@@ -1744,8 +1744,14 @@ namespace GameboyTetris
             //Color color = new Color(224, 248, 207);
 
             //_spriteBatch.Draw();
-            //_spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
-            _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, changePalette, null);
+            if (currentPalette != 0)
+            {
+                _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp, null, null, changePalette, null);
+            }
+            else
+            {
+                _spriteBatch.Begin(SpriteSortMode.Deferred, null, SamplerState.PointClamp);
+            }
             GraphicsDevice.Clear(palette[currentPalette][0]);
 
             currentScreen.Draw(_spriteBatch, gs != GameState.paused);

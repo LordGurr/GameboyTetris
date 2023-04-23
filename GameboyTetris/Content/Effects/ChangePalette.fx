@@ -44,31 +44,58 @@ float4 colorize(float4 grayscale)
     float4 new_color;
 
 	// Color greater than 0 in value?
-    if (grayscale.r > 0)
-	{
+ //   if (grayscale.r > 0)
+	//{
+	//	// Set darkest color 4
+ //       new_color = color_4;
+
+	//	// Color greater than (default) 0.25 in value?
+ //       if (grayscale.r > offset * 0.5)
+	//	{
+	//		// Set dark color 3
+ //           new_color = color_3;
+
+	//		// Color greater than (default) 0.50 in value?
+ //           if (grayscale.r > offset)
+	//		{
+	//			// Set bright color 2
+ //               new_color = color_2;
+
+	//			// Color greater than (default) 0.75 in value?
+ //               if (grayscale.r > offset * 1.5)
+	//			{
+	//				// Set brightest color 1
+ //                   new_color = color_1;
+ //               }
+ //           }
+ //       }
+ //   }
+
+
+	// Color greater than (default) 0.75 in value?
+    if (grayscale.r > offset * 1.5)
+    {
+		// Set brightest color 1
+        new_color = color_1;
+    }
+	// Color greater than (default) 0.50 in value?
+    else if (grayscale.r > offset)
+    {
+		// Set bright color 2
+        new_color = color_2;
+
+    }
+	// Color greater than (default) 0.25 in value?
+    else if (grayscale.r > offset * 0.5)
+    {
+		// Set dark color 3
+        new_color = color_3;
+    }
+    // Color greater than 0 in value?
+    else if (grayscale.r > 0)
+    {
 		// Set darkest color 4
         new_color = color_4;
-
-		// Color greater than (default) 0.25 in value?
-        if (grayscale.r > offset * 0.5)
-		{
-			// Set dark color 3
-            new_color = color_3;
-
-			// Color greater than (default) 0.50 in value?
-            if (grayscale.r > offset)
-			{
-				// Set bright color 2
-                new_color = color_2;
-
-				// Color greater than (default) 0.75 in value?
-                if (grayscale.r > offset * 1.5)
-				{
-					// Set brightest color 1
-                    new_color = color_1;
-                }
-            }
-        }
     }
 
 	// Return the new color
@@ -144,19 +171,25 @@ float4 MainPS(VertexShaderOutput input) : COLOR
  //       color.b = 0;
  //       color.a = 0;
  //   }
-
-	color = to_grayscale(color);
-    if(color.a == 1)
+    if(color.a>0)
     {
-        color = colorize(color);
-    }
-    else if(color.a == 0.4f)
-    {
+        color = to_grayscale(color);
         float alphaTemp = color.a;
         color.a = 1;
         color = colorize(color);
-        color.a = 0.8f;
+        color.a = alphaTemp;
     }
+    //if(color.a == 1)
+    //{
+    //    color = colorize(color);
+    //}
+    //else if(color.a == 0.4f)
+    //{
+    //    float alphaTemp = color.a;
+    //    color.a = 1;
+    //    color = colorize(color);
+    //    color.a = 0.8f;
+    //}
     return color;
 }
 
